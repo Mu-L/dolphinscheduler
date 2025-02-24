@@ -24,13 +24,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.api.vo.TaskInstanceCountVO;
+import org.apache.dolphinscheduler.api.vo.WorkflowInstanceCountVO;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.dao.entity.Project;
 import org.apache.dolphinscheduler.dao.mapper.ProjectMapper;
 
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.powermock.api.mockito.PowerMockito;
+import java.util.Date;
+
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,12 +41,10 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.Date;
+import com.fasterxml.jackson.core.type.TypeReference;
 
-/**
- * data analysis controller test
- */
 public class DataAnalysisControllerTest extends AbstractControllerTest {
+
     private static final Logger logger = LoggerFactory.getLogger(DataAnalysisControllerTest.class);
 
     @Autowired
@@ -61,44 +61,48 @@ public class DataAnalysisControllerTest extends AbstractControllerTest {
     }
 
     @Test
-    public void testCountTaskState() throws Exception {
+    public void testGetTaskInstanceStateCount() throws Exception {
         int projectId = createProject();
 
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
-        paramsMap.add("startDate","2019-12-01 00:00:00");
-        paramsMap.add("endDate","2019-12-28 00:00:00");
-        paramsMap.add("projectCode","16");
+        paramsMap.add("startDate", "2019-12-01 00:00:00");
+        paramsMap.add("endDate", "2019-12-28 00:00:00");
+        paramsMap.add("projectCode", "16");
         MvcResult mvcResult = mockMvc.perform(get("/projects/analysis/task-state-count")
                 .header("sessionId", sessionId)
                 .params(paramsMap))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
-        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        assertThat(result.getCode().intValue()).isEqualTo(Status.SUCCESS.getCode());
-        logger.info(mvcResult.getResponse().getContentAsString());
-
+        Result<TaskInstanceCountVO> result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(),
+                new TypeReference<Result<TaskInstanceCountVO>>() {
+                });
+        assertThat(result.getCode())
+                .isNotNull()
+                .isEqualTo(Status.SUCCESS.getCode());
         projectMapper.deleteById(projectId);
     }
 
     @Test
-    public void testCountProcessInstanceState() throws Exception {
+    public void testGetWorkflowInstanceStateCount() throws Exception {
         int projectId = createProject();
 
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
-        paramsMap.add("startDate","2019-12-01 00:00:00");
-        paramsMap.add("endDate","2019-12-28 00:00:00");
-        paramsMap.add("projectCode","16");
+        paramsMap.add("startDate", "2019-12-01 00:00:00");
+        paramsMap.add("endDate", "2019-12-28 00:00:00");
+        paramsMap.add("projectCode", "16");
 
-        MvcResult mvcResult = mockMvc.perform(get("/projects/analysis/process-state-count")
+        MvcResult mvcResult = mockMvc.perform(get("/projects/analysis/workflow-state-count")
                 .header("sessionId", sessionId)
                 .params(paramsMap))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
-        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        assertThat(result.getCode().intValue()).isEqualTo(Status.SUCCESS.getCode());
-        logger.info(mvcResult.getResponse().getContentAsString());
+        Result<WorkflowInstanceCountVO> result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(),
+                new TypeReference<Result<WorkflowInstanceCountVO>>() {
+                });
+        assertThat(result.getCode())
+                .isEqualTo(Status.SUCCESS.getCode());
 
         projectMapper.deleteById(projectId);
     }
@@ -107,7 +111,7 @@ public class DataAnalysisControllerTest extends AbstractControllerTest {
     public void testCountDefinitionByUser() throws Exception {
 
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
-        paramsMap.add("projectId","16");
+        paramsMap.add("projectId", "16");
 
         MvcResult mvcResult = mockMvc.perform(get("/projects/analysis/define-user-count")
                 .header("sessionId", sessionId)
@@ -144,18 +148,39 @@ public class DataAnalysisControllerTest extends AbstractControllerTest {
         logger.info(mvcResult.getResponse().getContentAsString());
     }
 
-    /**
-     * get mock Project
-     *
-     * @param projectName projectName
-     * @return Project
-     */
-    private Project getProject(String projectName) {
-        Project project = new Project();
-        project.setCode(11L);
-        project.setId(1);
-        project.setName(projectName);
-        project.setUserId(1);
-        return project;
+    @Test
+    public void testListCommand() throws Exception {
+        MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("projectCode", "16");
+        paramsMap.add("pageNo", "1");
+        paramsMap.add("pageSize", "10");
+
+        MvcResult mvcResult = mockMvc.perform(get("/projects/analysis/listCommand")
+                .header("sessionId", sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        assertThat(result.getCode().intValue()).isEqualTo(Status.SUCCESS.getCode());
+        logger.info(mvcResult.getResponse().getContentAsString());
+    }
+
+    @Test
+    public void testListErrorCommand() throws Exception {
+        MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
+        paramsMap.add("projectCode", "16");
+        paramsMap.add("pageNo", "1");
+        paramsMap.add("pageSize", "10");
+
+        MvcResult mvcResult = mockMvc.perform(get("/projects/analysis/listErrorCommand")
+                .header("sessionId", sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        assertThat(result.getCode().intValue()).isEqualTo(Status.SUCCESS.getCode());
+        logger.info(mvcResult.getResponse().getContentAsString());
     }
 }

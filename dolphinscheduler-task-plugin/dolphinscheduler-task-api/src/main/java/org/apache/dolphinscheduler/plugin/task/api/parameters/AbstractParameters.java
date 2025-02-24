@@ -17,29 +17,44 @@
 
 package org.apache.dolphinscheduler.plugin.task.api.parameters;
 
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
+import org.apache.dolphinscheduler.plugin.task.api.K8sTaskExecutionContext;
 import org.apache.dolphinscheduler.plugin.task.api.enums.Direct;
+import org.apache.dolphinscheduler.plugin.task.api.enums.ResourceType;
 import org.apache.dolphinscheduler.plugin.task.api.model.Property;
 import org.apache.dolphinscheduler.plugin.task.api.model.ResourceInfo;
+import org.apache.dolphinscheduler.plugin.task.api.parameters.resource.DataSourceParameters;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.resource.ResourceParametersHelper;
-import org.apache.dolphinscheduler.spi.utils.JSONUtils;
-import org.apache.dolphinscheduler.spi.utils.StringUtils;
+import org.apache.dolphinscheduler.plugin.task.api.utils.VarPoolUtils;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.google.common.collect.Lists;
 
-/**
- * job params related class
- */
+@Getter
+@Slf4j
 public abstract class AbstractParameters implements IParameters {
+
+    @Setter
+    public List<Property> localParams;
+
+    public List<Property> varPool = new ArrayList<>();
+
     @Override
     public abstract boolean checkParameters();
 
@@ -48,45 +63,29 @@ public abstract class AbstractParameters implements IParameters {
         return new ArrayList<>();
     }
 
-    /**
-     * local parameters
-     */
-    public List<Property> localParams;
-
-    /**
-     * var pool
-     */
-    public List<Property> varPool;
-
-    /**
-     * get local parameters list
-     *
-     * @return Property list
-     */
-    public List<Property> getLocalParams() {
-        return localParams;
-    }
-
-    public void setLocalParams(List<Property> localParams) {
-        this.localParams = localParams;
-    }
-
-    /**
-     * get local parameters map
-     * @return parameters map
-     */
     public Map<String, Property> getLocalParametersMap() {
         Map<String, Property> localParametersMaps = new LinkedHashMap<>();
         if (localParams != null) {
             for (Property property : localParams) {
-                localParametersMaps.put(property.getProp(),property);
+                localParametersMaps.put(property.getProp(), property);
             }
         }
         return localParametersMaps;
     }
 
+    public K8sTaskExecutionContext generateK8sTaskExecutionContext(ResourceParametersHelper parametersHelper,
+                                                                   int datasource) {
+        DataSourceParameters dataSourceParameters =
+                (DataSourceParameters) parametersHelper.getResourceParameters(ResourceType.DATASOURCE, datasource);
+        K8sTaskExecutionContext k8sTaskExecutionContext = new K8sTaskExecutionContext();
+        k8sTaskExecutionContext.setConnectionParams(
+                Objects.nonNull(dataSourceParameters) ? dataSourceParameters.getConnectionParams() : null);
+        return k8sTaskExecutionContext;
+    }
+
     /**
      * get input local parameters map if the param direct is IN
+     *
      * @return parameters map
      */
     public Map<String, Property> getInputLocalParametersMap() {
@@ -117,54 +116,39 @@ public abstract class AbstractParameters implements IParameters {
         return varPoolMap;
     }
 
-    public List<Property> getVarPool() {
-        return varPool;
-    }
-
     public void setVarPool(String varPool) {
-        if (org.apache.dolphinscheduler.spi.utils.StringUtils.isEmpty(varPool)) {
+        if (StringUtils.isEmpty(varPool)) {
             this.varPool = new ArrayList<>();
         } else {
             this.varPool = JSONUtils.toList(varPool, Property.class);
         }
     }
 
-    public void dealOutParam(String result) {
-        if (CollectionUtils.isEmpty(localParams)) {
-            return;
-        }
+    public void dealOutParam(Map<String, String> taskOutputParams) {
         List<Property> outProperty = getOutProperty(localParams);
         if (CollectionUtils.isEmpty(outProperty)) {
             return;
         }
-        if (StringUtils.isEmpty(result)) {
-            varPool.addAll(outProperty);
-            return;
-        }
-        Map<String, String> taskResult = getMapByString(result);
-        if (taskResult.size() == 0) {
-            return;
-        }
-        for (Property info : outProperty) {
-            String propValue = taskResult.get(info.getProp());
-            if (StringUtils.isNotEmpty(propValue)) {
-                info.setValue(propValue);
-                addPropertyToValPool(info);
+        if (CollectionUtils.isNotEmpty(outProperty) && MapUtils.isNotEmpty(taskOutputParams)) {
+            // Inject the value
+            for (Property info : outProperty) {
+                String value = taskOutputParams.get(info.getProp());
+                if (value != null) {
+                    info.setValue(value);
+                }
             }
         }
+
+        varPool = VarPoolUtils.mergeVarPool(Lists.newArrayList(varPool, outProperty));
     }
 
-    public List<Property> getOutProperty(List<Property> params) {
+    protected List<Property> getOutProperty(List<Property> params) {
         if (CollectionUtils.isEmpty(params)) {
             return new ArrayList<>();
         }
-        List<Property> result = new ArrayList<>();
-        for (Property info : params) {
-            if (info.getDirect() == Direct.OUT) {
-                result.add(info);
-            }
-        }
-        return result;
+        return params.stream()
+                .filter(info -> info.getDirect() == Direct.OUT)
+                .collect(Collectors.toList());
     }
 
     public List<Map<String, String>> getListMapByString(String json) {
@@ -177,28 +161,11 @@ public abstract class AbstractParameters implements IParameters {
         return allParams;
     }
 
-    /**
-     * shell's result format is key=value$VarPool$key=value$VarPool$
-     * @param result
-     * @return
-     */
-    public static Map<String, String> getMapByString(String result) {
-        String[] formatResult = result.split("\\$VarPool\\$");
-        Map<String, String> format = new HashMap<>();
-        for (String info : formatResult) {
-            if (StringUtils.isNotEmpty(info) && info.contains("=")) {
-                String[] keyValue = info.split("=");
-                format.put(keyValue[0], keyValue[1]);
-            }
-        }
-        return format;
-    }
-
     public ResourceParametersHelper getResources() {
         return new ResourceParametersHelper();
     }
 
-    private void addPropertyToValPool(Property property) {
+    public void addPropertyToValPool(Property property) {
         varPool.removeIf(p -> p.getProp().equals(property.getProp()));
         varPool.add(property);
     }

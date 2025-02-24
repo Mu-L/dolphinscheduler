@@ -28,6 +28,7 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
  * have_alert
  */
 public enum Flag {
+
     /**
      * 0 no
      * 1 yes
@@ -50,5 +51,12 @@ public enum Flag {
 
     public String getDescp() {
         return descp;
+    }
+
+    public static Flag of(int code) {
+        if (code == 0) {
+            return NO;
+        }
+        return YES;
     }
 }

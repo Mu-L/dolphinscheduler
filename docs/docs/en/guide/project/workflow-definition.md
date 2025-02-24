@@ -50,38 +50,49 @@ Click the `Save` button, and the "Set DAG chart name" window pops up, as shown i
 
 ![workflow-save](../../../../img/new_ui/dev/project/workflow-save.png)
 
+### Configure workflow (process) execution type
+
+Click the `Save` button and configure `process execution type` in the pop-up window. There are four process execution types:
+
+- `Parallel`: If there are multiple instances of the same workflow definition, execute the instances in parallel.
+- `Serial Wait`: If there are multiple instances of the same workflow definition, execute the instances in serial.
+- `Serial Discard`: If there are multiple instances of the same workflow definition, discard the later ones and kill the current running ones.
+- `Serial Priority`: If there are multiple instances of the same workflow definition, execute the instances according to the priority in serial.
+
+![workflow-execution-type](../../../../img/new_ui/dev/project/workflow-execution-type.png)
+
 ## Workflow Definition Operation Function
 
 Click `Project Management -> Workflow -> Workflow Definition` to enter the workflow definition page, as shown below:
 
 ![workflow-list](../../../../img/new_ui/dev/project/workflow-list.png)
 
-Workflow running parameter description:
-
-* **Failure strategy**: When a task node fails to execute, other parallel task nodes need to execute the strategy. "Continue" means: After a task fails, other task nodes execute normally; "End" means: Terminate all tasks being executed, and terminate the entire process.
-* **Notification strategy**: When the process ends, send process execution information notification emails according to the process status, including no status, success, failure, success or failure.
-* **Process priority**: the priority of process operation, divided into five levels: the highest (HIGHEST), high (HIGH), medium (MEDIUM), low (LOW), the lowest (LOWEST). When the number of master threads is insufficient, processes with higher levels will be executed first in the execution queue, and processes with the same priority will be executed in the order of first-in, first-out.
-* **Worker grouping**: This process can only be executed in the specified worker machine group. The default is Default, which can be executed on any worker.
-* **Notification Group**: Select Notification Policy||Timeout Alarm||When fault tolerance occurs, process information or emails will be sent to all members in the notification group.
-* **Recipient**: Select Notification Policy||Timeout Alarm||When fault tolerance occurs, process information or alarm email will be sent to the recipient list.
-* **Cc**: Select Notification Policy||Timeout Alarm||When fault tolerance occurs, the process information or alarm email will be copied to the Cc list.
-* **Startup parameters**: Set or override the value of global parameters when starting a new process instance.
-* **Complement**: There are 2 modes of serial complement and parallel complement. Serial complement: within the specified time range, perform complements in sequence from the start date to the end date, and generate N process instances in turn; parallel complement: within the specified time range, perform multiple complements at the same time, and generate N process instances at the same time .
-  * **Complement**: Execute the workflow definition of the specified date, you can select the time range of the supplement (currently only supports the supplement for consecutive days), for example, the data from May 1st to May 10th needs to be supplemented, as shown in the following figure:
-
-The following are the operation functions of the workflow definition list:
+### Actions Supported by a Single Workflow
 
 - **Edit:** Only "Offline" workflow definitions can be edited. Workflow DAG editing is the same as [Create Workflow Definition](#create-workflow-definition)
+- **Run:** Only workflow in the online state can run. See [Run Workflow](#run-the-workflow) for the operation steps.
 - **Online:** When the workflow status is "Offline", used to make workflow online. Only the workflow in the "Online" state can run, but cannot edit.
 - **Offline:** When the workflow status is "Online", used to make workflow offline. Only the workflow in the "Offline" state can be edited, but cannot run.
-- **Run:** Only workflow in the online state can run. See [Run Workflow](#run-the-workflow) for the operation steps.
-- **Timing:** Timing can only set to online workflows, and the system automatically schedules to run the workflow on time. The status after creating a timing setting is "offline", and the timing must set online on the timing management page to make effect. See [Workflow Timing](#workflow-schedule) for timing operation steps.
+- **Timing:** Timing can only set to online workflows, and the system automatically schedules to run the workflow on time. The status after creating a timing setting is "offline", You need to click the <img src="../../../../img/scheduler_online.png" width="20"/>button on the right to go online to take effect. See [Workflow Timing](#workflow-schedule) for timing operation steps.
+- **Timing Online：** Scheduled online, schedule can only be clicked after the schedule is created and the workflow status is "online".
+- **Timing Offline：** Scheduled offline.
 - **Timing Management:** The timing management page can edit, online or offline and delete timing.
 - **Delete:** Delete the workflow definition. In the same project, only the workflow definition created by yourself can be deleted, and the workflow definition of other users cannot be deleted. If you need to delete it, please contact the user who created it or the administrator.
 - **Download:** Download workflow definition to local.
+- **Copy:** Under the current project, copy a new workflow based on the current workflow, and the name of the new workflow will be suffixed with `_copy_<date>` on the basis of the original workflow name.
+- **Export:** Export workflow definition json file.
+- **Version Info:** View the workflow version information, and switch the workflow version in the version information list.
 - **Tree Diagram:** Display the task node type and task status in a tree structure, as shown in the figure below:
 
 ![workflow-tree](../../../../img/new_ui/dev/project/workflow-tree.png)
+
+### Workflow batch operations
+
+After selecting multiple workflows, you can perform batch operations at the bottom of the workflow definition list, as follows:
+
+- **Batch Delete:** Batch delete multiple workflow definitions.
+- **Batch Export:** Batch export multiple workflow definitions to a json file.
+- **Batch Copy:** Batch copy multiple workflow definitions, you can choose under which project to generate the copied workflow.
 
 ## Run the Workflow
 
@@ -96,7 +107,7 @@ The following are the operation functions of the workflow definition list:
 Description of workflow operating parameters:
 
 * Failure strategy: When a task node fails to execute, other parallel task nodes need to execute this strategy. "Continue" means: after a certain task fails, other task nodes execute normally; "End" means: terminate all tasks execution, and terminate the entire process.
-* Notification strategy: When the process is over, send the process execution result notification email according to the process status, options including no send, send if sucess, send of failure, send whatever result.
+* Notification strategy: When the process is over, send the process execution result notification email according to the process status, options including no send, send if success, send of failure, send whatever result.
 * Process priority: The priority of process operation, divide into five levels: highest (HIGHEST), high (HIGH), medium (MEDIUM), low (LOW), and lowest (LOWEST). When the number of master threads is insufficient, high priority processes will execute first in the execution queue, and processes with the same priority will execute in the order of first in, first out.
 * Worker group: The process can only be executed in the specified worker machine group. The default is `Default`, which can execute on any worker.
 * Notification group: select notification strategy||timeout alarm||when fault tolerance occurs, process result information or email will send to all members in the notification group.
@@ -170,9 +181,12 @@ Description of workflow operating parameters:
 
 - Click the "Create" button to create the timing. Now the timing status is "**Offline**" and the timing needs to be **Online** to make effect.
 
-- Schedule online: Click the `Timing Management` button <img src="../../../../img/timeManagement.png" width="35"/>, enter the timing management page, click the `online` button, the timing status will change to `online`, as shown in the below figure, the workflow makes effect regularly.
+- Schedule online: Click the `Timing online` button <img src="../../../../img/scheduler_online.png" width="30"/>, click the `online` button, the timing status will change to `online`, as shown in the below figure, the workflow makes effect regularly.
 
   ![workflow-time03](../../../../img/new_ui/dev/project/workflow-time03.png)
+
+- View the Schedule Timing：After the scheduled time goes online, you can check the current timing situation through the "Timing" button<img src="../../../../img/timing.png" width="35"/>. But it cannot be modified, as shown in the below figure.
+  ![workflow-time04](../../../../img/new_ui/dev/project/workflow-time04.png)
 
 ## Import Workflow
 

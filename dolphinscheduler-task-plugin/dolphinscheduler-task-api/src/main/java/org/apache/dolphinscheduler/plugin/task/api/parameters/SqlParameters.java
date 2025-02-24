@@ -17,29 +17,26 @@
 
 package org.apache.dolphinscheduler.plugin.task.api.parameters;
 
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.plugin.task.api.SQLTaskExecutionContext;
 import org.apache.dolphinscheduler.plugin.task.api.enums.DataType;
 import org.apache.dolphinscheduler.plugin.task.api.enums.ResourceType;
-import org.apache.dolphinscheduler.plugin.task.api.enums.UdfType;
 import org.apache.dolphinscheduler.plugin.task.api.model.Property;
 import org.apache.dolphinscheduler.plugin.task.api.model.ResourceInfo;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.resource.DataSourceParameters;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.resource.ResourceParametersHelper;
-import org.apache.dolphinscheduler.plugin.task.api.parameters.resource.UdfFuncParameters;
-import org.apache.dolphinscheduler.spi.utils.JSONUtils;
-import org.apache.dolphinscheduler.spi.utils.StringUtils;
+import org.apache.dolphinscheduler.plugin.task.api.utils.VarPoolUtils;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import com.google.common.base.Enums;
-import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 
 /**
  * Sql/Hql parameter
@@ -79,10 +76,6 @@ public class SqlParameters extends AbstractParameters {
     private int displayRows;
 
     /**
-     * udf list
-     */
-    private String udfs;
-    /**
      * show type
      * 0 TABLE
      * 1 TEXT
@@ -114,15 +107,6 @@ public class SqlParameters extends AbstractParameters {
 
     private int limit;
 
-    /**
-     * segment separator
-     *
-     * <p>The segment separator is used
-     * when the data source does not support multi-segment SQL execution,
-     * and the client needs to split the SQL and execute it multiple times.</p>
-     */
-    private String segmentSeparator;
-
     public int getLimit() {
         return limit;
     }
@@ -153,14 +137,6 @@ public class SqlParameters extends AbstractParameters {
 
     public void setSql(String sql) {
         this.sql = sql;
-    }
-
-    public String getUdfs() {
-        return udfs;
-    }
-
-    public void setUdfs(String udfs) {
-        this.udfs = udfs;
     }
 
     public int getSqlType() {
@@ -235,14 +211,6 @@ public class SqlParameters extends AbstractParameters {
         this.groupId = groupId;
     }
 
-    public String getSegmentSeparator() {
-        return segmentSeparator;
-    }
-
-    public void setSegmentSeparator(String segmentSeparator) {
-        this.segmentSeparator = segmentSeparator;
-    }
-
     @Override
     public boolean checkParameters() {
         return datasource != 0 && StringUtils.isNotEmpty(type) && StringUtils.isNotEmpty(sql);
@@ -253,7 +221,6 @@ public class SqlParameters extends AbstractParameters {
         return new ArrayList<>();
     }
 
-    @Override
     public void dealOutParam(String result) {
         if (CollectionUtils.isEmpty(localParams)) {
             return;
@@ -263,7 +230,7 @@ public class SqlParameters extends AbstractParameters {
             return;
         }
         if (StringUtils.isEmpty(result)) {
-            varPool.addAll(outProperty);
+            varPool = VarPoolUtils.mergeVarPool(Lists.newArrayList(varPool, outProperty));
             return;
         }
         List<Map<String, String>> sqlResult = getListMapByString(result);
@@ -286,7 +253,6 @@ public class SqlParameters extends AbstractParameters {
             for (Property info : outProperty) {
                 if (info.getType() == DataType.LIST) {
                     info.setValue(JSONUtils.toJsonString(sqlResultFormat.get(info.getProp())));
-                    varPool.add(info);
                 }
             }
         } else {
@@ -294,9 +260,9 @@ public class SqlParameters extends AbstractParameters {
             Map<String, String> firstRow = sqlResult.get(0);
             for (Property info : outProperty) {
                 info.setValue(String.valueOf(firstRow.get(info.getProp())));
-                varPool.add(info);
             }
         }
+        varPool = VarPoolUtils.mergeVarPool(Lists.newArrayList(varPool, outProperty));
 
     }
 
@@ -310,8 +276,6 @@ public class SqlParameters extends AbstractParameters {
                 + ", sendEmail=" + sendEmail
                 + ", displayRows=" + displayRows
                 + ", limit=" + limit
-                + ", segmentSeparator=" + segmentSeparator
-                + ", udfs='" + udfs + '\''
                 + ", showType='" + showType + '\''
                 + ", connParams='" + connParams + '\''
                 + ", groupId='" + groupId + '\''
@@ -326,21 +290,12 @@ public class SqlParameters extends AbstractParameters {
         ResourceParametersHelper resources = super.getResources();
         resources.put(ResourceType.DATASOURCE, datasource);
 
-        // whether udf type
-        boolean udfTypeFlag = Enums.getIfPresent(UdfType.class, Strings.nullToEmpty(this.getType())).isPresent()
-                && !StringUtils.isEmpty(this.getUdfs());
-
-        if (udfTypeFlag) {
-            String[] udfFunIds = this.getUdfs().split(",");
-            for (int i = 0; i < udfFunIds.length; i++) {
-                resources.put(ResourceType.UDF, Integer.parseInt(udfFunIds[i]));
-            }
-        }
         return resources;
     }
 
     /**
      * TODO SQLTaskExecutionContext needs to be optimized
+     *
      * @param parametersHelper
      * @return
      */
@@ -350,16 +305,6 @@ public class SqlParameters extends AbstractParameters {
         DataSourceParameters dbSource =
                 (DataSourceParameters) parametersHelper.getResourceParameters(ResourceType.DATASOURCE, datasource);
         sqlTaskExecutionContext.setConnectionParams(dbSource.getConnectionParams());
-
-        // whether udf type
-        boolean udfTypeFlag = Enums.getIfPresent(UdfType.class, Strings.nullToEmpty(this.getType())).isPresent()
-                && !StringUtils.isEmpty(this.getUdfs());
-
-        if (udfTypeFlag) {
-            List<UdfFuncParameters> collect = parametersHelper.getResourceMap(ResourceType.UDF).entrySet().stream()
-                    .map(entry -> (UdfFuncParameters) entry.getValue()).collect(Collectors.toList());
-            sqlTaskExecutionContext.setUdfFuncParametersList(collect);
-        }
 
         return sqlTaskExecutionContext;
     }

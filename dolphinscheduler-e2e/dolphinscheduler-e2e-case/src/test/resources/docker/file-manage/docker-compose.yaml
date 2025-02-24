@@ -23,17 +23,18 @@ services:
     environment:
       MASTER_MAX_CPU_LOAD_AVG: 100
       WORKER_TENANT_AUTO_CREATE: 'true'
-    expose:
-      - 12345
+    ports:
+      - "12345:12345"
     networks:
       - e2e
     healthcheck:
-      test: [ "CMD", "curl", "http://localhost:12345/actuator/health" ]
+      test: [ "CMD", "curl", "http://localhost:12345/dolphinscheduler/actuator/health" ]
       interval: 5s
-      timeout: 60s
+      timeout: 5s
       retries: 120
     volumes:
-      - ./common.properties:/opt/dolphinscheduler/conf/common.properties
+      - ./common.properties:/opt/dolphinscheduler/standalone-server/conf/common.properties
+      - ./aws.yaml:/opt/dolphinscheduler/standalone-server/conf/aws.yaml
     depends_on:
       s3:
         condition: service_healthy
@@ -46,7 +47,7 @@ services:
     stdin_open: true
     command: server /data --console-address ":9001"
     ports:
-      - 9000:9000
+      - "9000:9000"
     networks:
       - e2e
     environment:
@@ -55,7 +56,7 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 5s
-      timeout: 120s
+      timeout: 5s
       retries: 120
   mc:
     image: minio/mc:RELEASE.2022-01-07T06-01-38Z

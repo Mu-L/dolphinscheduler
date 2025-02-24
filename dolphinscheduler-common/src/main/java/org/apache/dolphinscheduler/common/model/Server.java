@@ -17,9 +17,9 @@
 
 package org.apache.dolphinscheduler.common.model;
 
-import lombok.Data;
-
 import java.util.Date;
+
+import lombok.Data;
 
 @Data
 public class Server {
@@ -30,12 +30,9 @@ public class Server {
 
     private int port;
 
-    private String zkDirectory;
+    private String serverDirectory;
 
-    /**
-     * resource info: CPU and memory
-     */
-    private String resInfo;
+    private String heartBeatInfo;
 
     private Date createTime;
 

@@ -17,56 +17,21 @@
 
 package org.apache.dolphinscheduler.plugin.task.java;
 
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.plugin.task.api.TaskChannel;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.AbstractParameters;
-import org.apache.dolphinscheduler.plugin.task.api.parameters.ParametersNode;
-import org.apache.dolphinscheduler.plugin.task.api.parameters.resource.ResourceParametersHelper;
-import org.apache.dolphinscheduler.spi.utils.JSONUtils;
 
 public class JavaTaskChannel implements TaskChannel {
 
-    /**
-     * Cancel the mission
-     *
-     * @param status
-     * @return void
-     **/
-    @Override
-    public void cancelApplication(boolean status) {
-
-    }
-
-    /**
-     * Create a task
-     *
-     * @param taskRequest This parameter is the Echternach of the mission
-     * @return JavaTask
-     **/
     @Override
     public JavaTask createTask(TaskExecutionContext taskRequest) {
         return new JavaTask(taskRequest);
     }
 
-    /**
-     * Parses Java task parameters
-     *
-     * @param parametersNode
-     * @return: org.apache.dolphinscheduler.plugin.task.api.parameters.AbstractParameters
-     **/
     @Override
-    public AbstractParameters parseParameters(ParametersNode parametersNode) {
-        return JSONUtils.parseObject(parametersNode.getTaskParams(), JavaParameters.class);
+    public AbstractParameters parseParameters(String taskParams) {
+        return JSONUtils.parseObject(taskParams, JavaParameters.class);
     }
 
-    /**
-     * Gets a list of the resources that the task depends on
-     *
-     * @param parameters
-     * @return ResourceParametersHelper
-     **/
-    @Override
-    public ResourceParametersHelper getResources(String parameters) {
-        return null;
-    }
 }

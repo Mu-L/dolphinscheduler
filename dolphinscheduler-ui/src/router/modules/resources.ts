@@ -53,7 +53,7 @@ export default {
       }
     },
     {
-      path: '/resource/file/edit/:id',
+      path: '/resource/file/edit',
       name: 'resource-file-edit',
       component: components['resource-file-edit'],
       meta: {
@@ -65,7 +65,7 @@ export default {
       }
     },
     {
-      path: '/resource/file/subdirectory/:id',
+      path: '/resource/file/subdirectory',
       name: 'resource-file-subdirectory',
       component: components['resource-file'],
       meta: {
@@ -77,7 +77,7 @@ export default {
       }
     },
     {
-      path: '/resource/file/list/:id',
+      path: '/resource/file/list',
       name: 'resource-file-list',
       component: components['resource-file-edit'],
       meta: {
@@ -89,47 +89,13 @@ export default {
       }
     },
     {
-      path: '/resource/file/create/:id',
+      path: '/resource/file/create',
       name: 'resource-subfile-create',
       component: components['resource-file-create'],
       meta: {
         title: '文件创建',
         activeMenu: 'resource',
         activeSide: '/resource/file-manage',
-        showSide: true,
-        auth: []
-      }
-    },
-    {
-      path: '/resource/resource-manage',
-      name: 'resource-manage',
-      component: components['resource-udf-resource'],
-      meta: {
-        title: '资源管理',
-        activeMenu: 'resource',
-        showSide: true,
-        auth: []
-      }
-    },
-    {
-      path: '/resource/resource-manage/:id',
-      name: 'resource-sub-manage',
-      component: components['resource-udf-resource'],
-      meta: {
-        title: '资源管理',
-        activeMenu: 'resource',
-        activeSide: '/resource/resource-manage',
-        showSide: true,
-        auth: []
-      }
-    },
-    {
-      path: '/resource/function-manage',
-      name: 'function-manage',
-      component: components['resource-udf-function'],
-      meta: {
-        title: '函数管理',
-        activeMenu: 'resource',
         showSide: true,
         auth: []
       }

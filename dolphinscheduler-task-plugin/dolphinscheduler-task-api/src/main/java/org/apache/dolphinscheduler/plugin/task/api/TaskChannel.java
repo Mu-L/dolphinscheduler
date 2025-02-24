@@ -18,17 +18,11 @@
 package org.apache.dolphinscheduler.plugin.task.api;
 
 import org.apache.dolphinscheduler.plugin.task.api.parameters.AbstractParameters;
-import org.apache.dolphinscheduler.plugin.task.api.parameters.ParametersNode;
-import org.apache.dolphinscheduler.plugin.task.api.parameters.resource.ResourceParametersHelper;
 
 public interface TaskChannel {
 
-    void cancelApplication(boolean status);
-
     AbstractTask createTask(TaskExecutionContext taskRequest);
 
-    AbstractParameters parseParameters(ParametersNode parametersNode);
-
-    ResourceParametersHelper getResources(String parameters);
+    AbstractParameters parseParameters(String taskParams);
 
 }

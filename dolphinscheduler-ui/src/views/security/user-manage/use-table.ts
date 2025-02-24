@@ -32,7 +32,8 @@ export function useTable() {
     currentRecord: {} as IRecord | null,
     authorizeType: 'authorize_project' as TAuthType,
     detailModalShow: false,
-    authorizeModalShow: false
+    authorizeModalShow: false,
+    passwordModalShow: false
   })
 
   const getList = async () => {
@@ -74,7 +75,7 @@ export function useTable() {
 
   const onOperationClick = (
     data: { rowData: IRecord; key?: TAuthType },
-    type: 'authorize' | 'edit' | 'delete'
+    type: 'authorize' | 'edit' | 'delete' | 'resetPassword'
   ) => {
     state.currentRecord = data.rowData
     if (type === 'edit') {
@@ -87,12 +88,10 @@ export function useTable() {
     if (type === 'delete') {
       deleteUser(data.rowData.id)
     }
+    if (type === 'resetPassword') {
+      state.passwordModalShow = true
+    }
   }
-
-  // const deleteRecord = async (id: number) => {
-  //   const ignored = await deleteAlertPluginInstance(id)
-  //   updateList()
-  // }
 
   const changePage = (page: number) => {
     state.page = page

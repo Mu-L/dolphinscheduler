@@ -17,11 +17,7 @@
 
 package org.apache.dolphinscheduler.plugin.task.api.enums;
 
-/**
- * depend result
- */
 public enum DependResult {
-
 
     /**
      * 0 success

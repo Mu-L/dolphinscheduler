@@ -45,7 +45,7 @@ export function useChunjun({
     workerGroup: 'default',
     delayTime: 0,
     timeout: 30,
-    customConfig: false,
+    customConfig: true,
     preStatements: [],
     postStatements: [],
     timeoutNotifyStrategy: ['WARN']
@@ -58,7 +58,7 @@ export function useChunjun({
       Fields.useRunFlag(),
       Fields.useDescription(),
       Fields.useTaskPriority(),
-      Fields.useWorkerGroup(),
+      Fields.useWorkerGroup(projectCode),
       Fields.useEnvironmentName(model, !data?.id),
       ...Fields.useTaskGroup(model, projectCode),
       ...Fields.useFailed(),

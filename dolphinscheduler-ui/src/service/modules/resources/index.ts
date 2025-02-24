@@ -22,21 +22,18 @@ import {
   NameReq,
   FileNameReq,
   FullNameReq,
-  IdReq,
+  TenantCodeReq,
   ContentReq,
   DescriptionReq,
   CreateReq,
-  UserIdReq,
   OnlineCreateReq,
   ProgramTypeReq,
   ListReq,
-  ViewResourceReq,
-  ResourceIdReq,
-  UdfFuncReq
+  ViewResourceReq
 } from './types'
 
 export function queryResourceListPaging(
-  params: ListReq & IdReq & ResourceTypeReq
+  params: ListReq & ResourceTypeReq & FullNameReq & TenantCodeReq
 ): any {
   return axios({
     url: '/resources',
@@ -45,21 +42,11 @@ export function queryResourceListPaging(
   })
 }
 
-export function queryResourceById(
-  params: ResourceTypeReq & FullNameReq & IdReq,
-  id: number
-): any {
+export function queryBaseDir(params: ResourceTypeReq): any {
   return axios({
-    url: `/resources/${id}`,
+    url: '/resources/base-dir',
     method: 'get',
     params
-  })
-}
-
-export function queryCurrentResourceById(id: number): any {
-  return axios({
-    url: `/resources/${id}/query`,
-    method: 'get'
   })
 }
 
@@ -69,31 +56,8 @@ export function createResource(
   return axios({
     url: '/resources',
     method: 'post',
-    data
-  })
-}
-
-export function authorizedFile(params: UserIdReq): any {
-  return axios({
-    url: '/resources/authed-file',
-    method: 'get',
-    params
-  })
-}
-
-export function authorizeResourceTree(params: UserIdReq): any {
-  return axios({
-    url: '/resources/authed-resource-tree',
-    method: 'get',
-    params
-  })
-}
-
-export function authUDFFunc(params: UserIdReq): any {
-  return axios({
-    url: '/resources/authed-udf-func',
-    method: 'get',
-    params
+    data,
+    timeout: 0
   })
 }
 
@@ -107,7 +71,7 @@ export function createDirectory(
   })
 }
 
-export function queryResourceList(params: ResourceTypeReq): any {
+export function queryResourceList(params: ResourceTypeReq & FullNameReq): any {
   return axios({
     url: '/resources/list',
     method: 'get',
@@ -135,128 +99,44 @@ export function queryResourceByProgramType(
   })
 }
 
-export function queryUdfFuncListPaging(params: ListReq): any {
-  return axios({
-    url: '/resources/udf-func',
-    method: 'get',
-    params
-  })
-}
-
-export function queryUdfFuncList(params: { type: 'HIVE' | 'SPARK' }): any {
-  return axios({
-    url: '/resources/udf-func/list',
-    method: 'get',
-    params
-  })
-}
-
-export function verifyUdfFuncName(params: NameReq): any {
-  return axios({
-    url: '/resources/udf-func/verify-name',
-    method: 'get',
-    params
-  })
-}
-
-export function deleteUdfFunc(id: number): any {
-  return axios({
-    url: `/resources/udf-func/${id}`,
-    method: 'delete'
-  })
-}
-
-export function unAuthUDFFunc(params: UserIdReq): any {
-  return axios({
-    url: '/resources/unauth-udf-func',
-    method: 'get',
-    params
-  })
-}
-
-export function verifyResourceName(params: FullNameReq & ResourceTypeReq): any {
-  return axios({
-    url: '/resources/verify-name',
-    method: 'get',
-    params
-  })
-}
-
-export function queryResource(
-  params: FullNameReq & ResourceTypeReq,
-  id: IdReq
-): any {
-  return axios({
-    url: `/resources/verify-name/${id}`,
-    method: 'get',
-    params
-  })
-}
-
 export function updateResource(
-  data: NameReq & ResourceTypeReq & IdReq & DescriptionReq,
-  id: number
+  data: NameReq & ResourceTypeReq & DescriptionReq & FullNameReq & TenantCodeReq
 ): any {
   return axios({
-    url: `/resources/${id}`,
+    url: '/resources',
     method: 'put',
     data
   })
 }
 
-export function deleteResource(id: number): any {
+export function deleteResource(params: FullNameReq & TenantCodeReq): any {
   return axios({
-    url: `/resources/${id}`,
-    method: 'delete'
-  })
-}
-
-export function downloadResource(id: number): void {
-  utils.downloadFile(`resources/${id}/download`)
-}
-
-export function viewUIUdfFunction(id: IdReq): any {
-  return axios({
-    url: `/resources/${id}/udf-func`,
-    method: 'get'
-  })
-}
-
-export function updateResourceContent(data: ContentReq, id: number): any {
-  return axios({
-    url: `/resources/${id}/update-content`,
-    method: 'put',
-    data
-  })
-}
-
-export function viewResource(params: ViewResourceReq, id: number): any {
-  return axios({
-    url: `/resources/${id}/view`,
-    method: 'get',
+    url: '/resources',
+    method: 'delete',
     params
   })
 }
 
-export function createUdfFunc(
-  data: UdfFuncReq,
-  resourceId: ResourceIdReq
+export function downloadResource(params: FullNameReq): void {
+  utils.downloadFile('resources/download', params)
+}
+
+export function updateResourceContent(
+  data: ContentReq & TenantCodeReq & FullNameReq
 ): any {
   return axios({
-    url: `/resources/${resourceId}/udf-func`,
-    method: 'post',
+    url: '/resources/update-content',
+    method: 'put',
     data
   })
 }
 
-export function updateUdfFunc(
-  data: UdfFuncReq,
-  resourceId: ResourceIdReq,
-  id: number
+export function viewResource(
+  params: ViewResourceReq & FullNameReq & TenantCodeReq
 ): any {
   return axios({
-    url: `/resources/${resourceId}/udf-func/${id}`,
-    method: 'put',
-    data
+    url: '/resources/view',
+    method: 'get',
+    params
   })
 }

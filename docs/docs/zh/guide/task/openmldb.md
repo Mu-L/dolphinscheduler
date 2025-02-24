@@ -13,7 +13,10 @@ OpenMLDB任务组件可以连接OpenMLDB集群执行任务。
 
 ## 任务样例
 
-- 默认参数说明请参考[DolphinScheduler任务参数附录](appendix.md#默认任务参数)。
+[//]: # (TODO: use the commented anchor below once our website template supports this syntax)
+[//]: # (- 默认参数说明请参考[DolphinScheduler任务参数附录]&#40;appendix.md#默认任务参数&#41;`默认任务参数`一栏。)
+
+- 默认参数说明请参考[DolphinScheduler任务参数附录](appendix.md)`默认任务参数`一栏。
 
 |  **任务参数**   |                      **描述**                      |
 |-------------|--------------------------------------------------|
@@ -48,6 +51,6 @@ OpenMLDB任务组件可以连接OpenMLDB集群执行任务。
 
 OpenMLDB任务组件将使用OpenMLDB Python SDK来连接OpenMLDB。所以你需要Python环境。
 
-我们默认使用`python3`，你可以通过配置`PYTHON_HOME`来设置自己的Python环境。
+我们默认使用`python3`，你可以通过配置`PYTHON_LAUNCHER`来设置自己的Python环境。
 
 请确保已通过`pip install openmldb`，在worker server的主机中安装了OpenMLDB Python SDK。

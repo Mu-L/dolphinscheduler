@@ -23,16 +23,14 @@ import org.apache.dolphinscheduler.registry.api.ConnectionState;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.ConnectionStateListener;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
-public final class ZookeeperConnectionStateListener implements ConnectionStateListener {
-    
-    private static final Logger logger = LoggerFactory.getLogger(ZookeeperConnectionStateListener.class);
+@Slf4j
+final class ZookeeperConnectionStateListener implements ConnectionStateListener {
 
     private final ConnectionListener listener;
 
-    public ZookeeperConnectionStateListener(ConnectionListener listener) {
+    ZookeeperConnectionStateListener(ConnectionListener listener) {
         this.listener = listener;
     }
 
@@ -40,16 +38,20 @@ public final class ZookeeperConnectionStateListener implements ConnectionStateLi
     public void stateChanged(CuratorFramework client,
                              org.apache.curator.framework.state.ConnectionState newState) {
         switch (newState) {
+            case CONNECTED:
+                log.info("Registry connected");
+                listener.onUpdate(ConnectionState.CONNECTED);
+                break;
             case LOST:
-                logger.warn("Registry disconnected");
+                log.warn("Registry disconnected");
                 listener.onUpdate(ConnectionState.DISCONNECTED);
                 break;
             case RECONNECTED:
-                logger.info("Registry reconnected");
+                log.info("Registry reconnected");
                 listener.onUpdate(ConnectionState.RECONNECTED);
                 break;
             case SUSPENDED:
-                logger.warn("Registry suspended");
+                log.warn("Registry suspended");
                 listener.onUpdate(ConnectionState.SUSPENDED);
                 break;
             default:

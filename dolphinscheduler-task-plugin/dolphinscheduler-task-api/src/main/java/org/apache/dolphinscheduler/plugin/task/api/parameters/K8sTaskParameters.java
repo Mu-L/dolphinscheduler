@@ -17,58 +17,43 @@
 
 package org.apache.dolphinscheduler.plugin.task.api.parameters;
 
+import org.apache.dolphinscheduler.plugin.task.api.enums.ResourceType;
+import org.apache.dolphinscheduler.plugin.task.api.model.Label;
+import org.apache.dolphinscheduler.plugin.task.api.model.NodeSelectorExpression;
 import org.apache.dolphinscheduler.plugin.task.api.model.ResourceInfo;
-import org.apache.dolphinscheduler.plugin.task.api.parameters.AbstractParameters;
-import org.apache.dolphinscheduler.spi.utils.StringUtils;
+import org.apache.dolphinscheduler.plugin.task.api.parameters.resource.ResourceParametersHelper;
+
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * k8s task parameters
  */
+@Data
+@Slf4j
 public class K8sTaskParameters extends AbstractParameters {
+
     private String image;
     private String namespace;
+    private String command;
+    private String args;
+    private String pullSecret;
+    private String imagePullPolicy;
     private double minCpuCores;
     private double minMemorySpace;
-
-    public String getImage() {
-        return image;
-    }
-
-    public void setImage(String image) {
-        this.image = image;
-    }
-
-    public String getNamespace() {
-        return namespace;
-    }
-
-    public void setNamespace(String namespace) {
-        this.namespace = namespace;
-    }
-
-    public double getMinCpuCores() {
-        return minCpuCores;
-    }
-
-    public void setMinCpuCores(double minCpuCores) {
-        this.minCpuCores = minCpuCores;
-    }
-
-    public double getMinMemorySpace() {
-        return minMemorySpace;
-    }
-
-    public void setMinMemorySpace(double minMemorySpace) {
-        this.minMemorySpace = minMemorySpace;
-    }
-
+    private List<Label> customizedLabels;
+    private List<NodeSelectorExpression> nodeSelectors;
+    private String kubeConfig;
+    private int datasource;
+    private String type;
     @Override
     public boolean checkParameters() {
-        return StringUtils.isNotEmpty(image) && StringUtils.isNotEmpty(namespace)
-            ;
+        return StringUtils.isNotEmpty(image);
     }
 
     @Override
@@ -77,12 +62,9 @@ public class K8sTaskParameters extends AbstractParameters {
     }
 
     @Override
-    public String toString() {
-        return "K8sTaskParameters{"
-            + "image='" + image + '\''
-            + ", namespace='" + namespace + '\''
-            + ", minCpuCores=" + minCpuCores
-            + ", minMemorySpace=" + minMemorySpace
-            + '}';
+    public ResourceParametersHelper getResources() {
+        ResourceParametersHelper resources = super.getResources();
+        resources.put(ResourceType.DATASOURCE, datasource);
+        return resources;
     }
 }

@@ -34,9 +34,10 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 public interface AlertMapper extends BaseMapper<Alert> {
 
     /**
-     * Query the alert by alertStatus and return limit with default sort.
+     * Query the alert which id > minAlertId and status = alertStatus order by id asc.
      */
-    List<Alert> listingAlertByStatus(@Param("alertStatus") int alertStatus, @Param("limit") int limit);
+    List<Alert> listingAlertByStatus(@Param("minAlertId") int minAlertId, @Param("alertStatus") int alertStatus,
+                                     @Param("limit") int limit);
 
     /**
      * Insert server crash alert
@@ -45,4 +46,7 @@ public interface AlertMapper extends BaseMapper<Alert> {
     void insertAlertWhenServerCrash(@Param("alert") Alert alert,
                                     @Param("crashAlarmSuppressionStartTime") Date crashAlarmSuppressionStartTime);
 
+    void deleteByWorkflowInstanceId(@Param("workflowInstanceId") Integer processInstanceId);
+
+    List<Alert> selectByWorkflowInstanceId(@Param("workflowInstanceId") Integer processInstanceId);
 }

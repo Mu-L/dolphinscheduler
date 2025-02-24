@@ -23,14 +23,7 @@ import {
   forceSuccess,
   downloadLog
 } from '@/service/modules/task-instances'
-import {
-  NButton,
-  NIcon,
-  NSpace,
-  NTooltip,
-  NSpin,
-  NEllipsis
-} from 'naive-ui'
+import { NButton, NIcon, NSpace, NTooltip, NSpin, NEllipsis } from 'naive-ui'
 import ButtonLink from '@/components/button-link'
 import {
   AlignLeftOutlined,
@@ -39,27 +32,23 @@ import {
 } from '@vicons/antd'
 import { format } from 'date-fns'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  parseTime,
-  renderTableTime,
-  tasksState
-} from '@/common/common'
+import { parseTime, renderTableTime, tasksState } from '@/common/common'
 import {
   COLUMN_WIDTH_CONFIG,
   calculateTableWidth,
   DefaultTableWidth
 } from '@/common/column-width-config'
 import type { Router, TaskInstancesRes, IRecord, ITaskState } from './types'
-import {renderEnvironmentalDistinctionCell} from "@/utils/environmental-distinction";
-
 
 export function useTable() {
   const { t } = useI18n()
   const route = useRoute()
   const router: Router = useRouter()
+
   const projectCode = Number(route.params.projectCode)
-  const processInstanceId = Number(route.params.processInstanceId)
-  const taskName = route.params.taskName
+  const workflowInstanceId = Number(route.query.workflowInstanceId)
+  const taskName = route.query.taskName
+  const taskCode = route.query.taskCode
 
   const variables = reactive({
     columns: [],
@@ -67,13 +56,15 @@ export function useTable() {
     tableData: [] as IRecord[],
     page: ref(1),
     pageSize: ref(10),
+    totalCount: ref(0),
     searchVal: ref(taskName || null),
-    processInstanceId: ref(processInstanceId ? processInstanceId : null),
+    taskCode: ref(taskCode || null),
+    workflowInstanceId: ref(workflowInstanceId ? workflowInstanceId : null),
     host: ref(null),
     stateType: ref(null),
     datePickerRange: ref(null),
     executorName: ref(null),
-    processInstanceName: ref(null),
+    workflowInstanceName: ref(null),
     totalPage: ref(1),
     showModalRef: ref(false),
     row: {},
@@ -95,32 +86,42 @@ export function useTable() {
       {
         title: t('project.task.task_name'),
         key: 'name',
-        ...COLUMN_WIDTH_CONFIG['name']
+        ...COLUMN_WIDTH_CONFIG['name'],
+        resizable: true,
+        minWidth: 200,
+        maxWidth: 600
       },
       {
         title: t('project.task.workflow_instance'),
-        key: 'processInstanceName',
+        key: 'workflowInstanceName',
         ...COLUMN_WIDTH_CONFIG['linkName'],
+        resizable: true,
+        minWidth: 300,
+        maxWidth: 600,
         render: (row: {
-          processInstanceId: number
-          processInstanceName: string
+          workflowInstanceId: number
+          workflowInstanceName: string
         }) =>
           h(
             ButtonLink,
             {
-              onClick: () =>
-                void router.push({
+              onClick: () => {
+                const routeUrl = router.resolve({
                   name: 'workflow-instance-detail',
-                  params: { id: row.processInstanceId },
+                  params: { id: row.workflowInstanceId },
                   query: { code: projectCode }
                 })
+                window.open(routeUrl.href, '_blank')
+              }
             },
             {
               default: () =>
                 h(
                   NEllipsis,
-                  COLUMN_WIDTH_CONFIG['linkEllipsis'],
-                  () => row.processInstanceName
+                  {
+                    style: 'max-width: 580px;line-height: 1.5'
+                  },
+                  () => row.workflowInstanceName
                 )
             }
           )
@@ -129,13 +130,6 @@ export function useTable() {
         title: t('project.task.executor'),
         key: 'executorName',
         ...COLUMN_WIDTH_CONFIG['name']
-      },
-      {
-        title: t('project.task.operating_environment'),
-        key: 'testFlag',
-        width: 160,
-        render: (_row: IRecord) =>
-          renderEnvironmentalDistinctionCell(_row.testFlag, t)
       },
       {
         title: t('project.task.node_type'),
@@ -188,6 +182,12 @@ export function useTable() {
         key: 'host',
         ...COLUMN_WIDTH_CONFIG['name'],
         render: (row: IRecord) => row.host || '-'
+      },
+      {
+        title: t('project.task.app_link'),
+        key: 'appLink',
+        ...COLUMN_WIDTH_CONFIG['name'],
+        render: (row: IRecord) => row.appLink || '-'
       },
       {
         title: t('project.task.operation'),
@@ -262,6 +262,7 @@ export function useTable() {
                         circle: true,
                         type: 'info',
                         size: 'small',
+                        disabled: !row.host,
                         onClick: () => downloadLog(row.id)
                       },
                       {
@@ -296,12 +297,13 @@ export function useTable() {
             ? variables.page - 1
             : variables.page,
         searchVal: variables.searchVal,
-        processInstanceId: variables.processInstanceId,
+        taskCode: variables.taskCode,
+        workflowInstanceId: variables.workflowInstanceId,
         host: variables.host,
         stateType: variables.stateType,
         datePickerRange: variables.datePickerRange,
         executorName: variables.executorName,
-        processInstanceName: variables.processInstanceName
+        workflowInstanceName: variables.workflowInstanceName
       })
     })
   }
@@ -313,7 +315,8 @@ export function useTable() {
       pageSize: params.pageSize,
       pageNo: params.pageNo,
       searchVal: params.searchVal,
-      processInstanceId: params.processInstanceId,
+      taskCode: params.taskCode,
+      workflowInstanceId: params.workflowInstanceId,
       host: params.host,
       stateType: params.stateType,
       startDate: params.datePickerRange
@@ -323,12 +326,13 @@ export function useTable() {
         ? format(parseTime(params.datePickerRange[1]), 'yyyy-MM-dd HH:mm:ss')
         : '',
       executorName: params.executorName,
-      processInstanceName: params.processInstanceName
+      workflowInstanceName: params.workflowInstanceName
     }
 
     const { state } = useAsyncState(
       queryTaskListPaging(data, { projectCode }).then(
         (res: TaskInstancesRes) => {
+          variables.totalCount = res.total
           variables.tableData = res.totalList as IRecord[]
           variables.totalPage = res.totalPage
           variables.loadingRef = false

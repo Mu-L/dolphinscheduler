@@ -21,6 +21,13 @@ interface ListReq {
   searchVal?: string
 }
 
+interface ListIdReq {
+  userId?: number
+  pageNo: number
+  pageSize: number
+  searchVal?: string
+}
+
 interface ProjectsReq {
   description?: string
   projectName: string
@@ -28,10 +35,6 @@ interface ProjectsReq {
 
 interface UserIdReq {
   userId?: number
-}
-
-interface UpdateProjectsReq extends ProjectsReq {
-  userName?: string
 }
 
 interface ProjectList {
@@ -57,11 +60,4 @@ interface ProjectRes {
   start: number
 }
 
-export {
-  ListReq,
-  ProjectsReq,
-  UserIdReq,
-  UpdateProjectsReq,
-  ProjectRes,
-  ProjectList
-}
+export { ListReq, ListIdReq, ProjectsReq, UserIdReq, ProjectRes, ProjectList }

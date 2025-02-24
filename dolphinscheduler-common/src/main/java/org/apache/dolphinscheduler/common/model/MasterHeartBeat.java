@@ -17,24 +17,13 @@
 
 package org.apache.dolphinscheduler.common.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
-@Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
-public class MasterHeartBeat implements HeartBeat {
-    private long startupTime;
-    private long reportTime;
-    private double cpuUsage;
-    private double memoryUsage;
-    private double loadAverage;
-    private double availablePhysicalMemorySize;
-    private double maxCpuloadAvg;
-    private double reservedMemory;
-    private double diskAvailable;
-    private int processId;
+public class MasterHeartBeat extends BaseHeartBeat implements HeartBeat {
+
+    private boolean isCoordinator;
+
 }

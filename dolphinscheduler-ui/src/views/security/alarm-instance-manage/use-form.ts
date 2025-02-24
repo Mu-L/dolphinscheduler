@@ -24,7 +24,7 @@ import {
 import type {
   IPluginId,
   IPlugin,
-  FormRules,
+  IFormRules,
   IMeta,
   IJsonItem,
   IRecord
@@ -60,13 +60,13 @@ export function useForm() {
       pluginDefineId: {
         trigger: ['blur', 'change'],
         required: true,
-        validator(validte, value) {
+        validator(unused: any, value: number) {
           if (!value && value !== 0) {
             return new Error(t('security.alarm_instance.select_plugin_tips'))
           }
         }
       }
-    } as FormRules
+    } as IFormRules
   } as IMeta
 
   const getUiPluginsByType = async () => {
@@ -111,6 +111,15 @@ export function useForm() {
     state.detailForm.pluginDefineId = record.pluginDefineId
     if (record.pluginInstanceParams)
       state.json = JSON.parse(record.pluginInstanceParams)
+    // ensure number type field has number type value
+    state.json.forEach((item: any) => {
+      if (item.validate && item.validate.length) {
+        const numberTypeItem = item.validate.find(
+          (v: any) => v.type === 'number'
+        )
+        if (numberTypeItem) item.value = +item.value
+      }
+    })
   }
 
   return {

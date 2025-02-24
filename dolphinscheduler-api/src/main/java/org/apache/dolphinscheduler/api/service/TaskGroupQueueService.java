@@ -19,11 +19,9 @@ package org.apache.dolphinscheduler.api.service;
 
 import org.apache.dolphinscheduler.dao.entity.User;
 
+import java.util.List;
 import java.util.Map;
 
-/**
- * task group queue service
- */
 public interface TaskGroupQueueService {
 
     /**
@@ -31,44 +29,20 @@ public interface TaskGroupQueueService {
      * @param loginUser   login user
      * @param groupId     group id
      * @param taskName    Task Name
-     * @param processName Process instance name
+     * @param workflowInstanceName workflow instance name
      * @param status      Task queue status
      * @param pageNo      page no
      * @param pageSize    page size
-
+    
      * @return tasks list
      */
-    Map<String, Object> queryTasksByGroupId(User loginUser, String taskName
-        , String processName, Integer status, int groupId, int pageNo,int pageSize);
+    Map<String, Object> queryTasksByGroupId(User loginUser, String taskName, String workflowInstanceName,
+                                            Integer status,
+                                            int groupId, int pageNo, int pageSize);
 
-    /**
-     * query tasks in task group queue by project id
-     * @param loginUser login user
-     * @param pageNo page no
-     * @param pageSize page size
-     * @param processId process id
-     * @return tasks list
-     */
-    Map<String, Object> queryTasksByProcessId(User loginUser, int pageNo,
-                                              int pageSize, int processId);
-
-    /**
-     * query all tasks in task group queue
-     * @param loginUser login user
-     * @param pageNo page no
-     * @param pageSize page size
-     * @return tasks list
-     */
-    Map<String, Object> queryAllTasks(User loginUser, int pageNo, int pageSize);
-
-    /**
-     * delete by task id
-     * @param taskId task id
-     * @return TaskGroupQueue entity
-     */
-    boolean deleteByTaskId(int taskId);
-
-    void forceStartTask(int queueId,int forceStart);
+    void deleteByWorkflowInstanceId(Integer workflowInstanceId);
 
     void modifyPriority(Integer queueId, Integer priority);
+
+    void deleteByTaskGroupIds(List<Integer> taskGroupIds);
 }

@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+set -eo pipefail
 
 usage="Usage: dolphinscheduler-daemon.sh (start|stop|status) <api-server|master-server|worker-server|alert-server|standalone-server> "
 
@@ -27,8 +28,6 @@ fi
 startStop=$1
 shift
 command=$1
-shift
-CLASS=$1
 shift
 
 echo "Begin $startStop $command......"
@@ -81,8 +80,25 @@ else
   exit 1
 fi
 
+state=""
+function get_server_running_status() {
+  state="STOP"
+  if [ -f $pid ]; then
+    TARGET_PID=`cat $pid`
+    if [[ $(ps -p "$TARGET_PID" -o comm=) =~ "bash" ]]; then
+      state="RUNNING"
+    fi
+  fi
+}
+
 case $startStop in
   (start)
+    # if server is already started, cancel this launch
+    get_server_running_status
+    if [[ $state == "RUNNING" ]]; then
+      echo "$command running as process $TARGET_PID.  Stop it first."
+      exit 1
+    fi
     echo starting $command, logging to $DOLPHINSCHEDULER_LOG_DIR
     overwrite_server_env "${command}"
     nohup /bin/bash "$DOLPHINSCHEDULER_HOME/$command/bin/start.sh" > $log 2>&1 &
@@ -110,13 +126,11 @@ case $startStop in
       ;;
 
   (status)
-    # more details about the status can be added later
-    serverCount=`ps -ef | grep "java" | grep "$DOLPHINSCHEDULER_HOME" | grep "$CLASS" | grep -v "grep" | wc -l`
-    state="STOP"
-    #  font color - red
-    state="[ \033[1;31m $state \033[0m ]"
-    if [[ $serverCount -gt 0 ]];then
-      state="RUNNING"
+    get_server_running_status
+    if [[ $state == "STOP" ]]; then
+      #  font color - red
+      state="[ \033[1;31m $state \033[0m ]"
+    else
       # font color - green
       state="[ \033[1;32m $state \033[0m ]"
     fi

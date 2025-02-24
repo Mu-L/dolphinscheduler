@@ -2,7 +2,7 @@
 
 ## Overview
 
-`SeaTunnel` task type for creating and executing `SeaTunnel` tasks. When the worker executes this task, it will parse the config file through the `start-seatunnel-spark.sh` or `start-seatunnel-flink.sh` command.
+`SeaTunnel` task type for creating and executing `SeaTunnel` tasks. When the worker executes this task, it will parse the config file through the `start-seatunnel-spark.sh` , `start-seatunnel-flink.sh` or `seatunnel.sh` command.
 Click [here](https://seatunnel.apache.org/) for more information about `Apache SeaTunnel`.
 
 ## Create Task
@@ -12,22 +12,30 @@ Click [here](https://seatunnel.apache.org/) for more information about `Apache S
 
 ## Task Parameter
 
-- Please refer to [DolphinScheduler Task Parameters Appendix](appendix.md#default-task-parameters) for default parameters.
-- Engine: Supports FLINK and SPARK
-  - FLINK
-    - Run model: supports `run` and `run-application` modes
-    - Option parameters: used to add the parameters of the Flink engine, such as `-m yarn-cluster -ynm seatunnel`
-  - SPARK
-    - Deployment mode: specify the deployment mode, `cluster` `client` `local`
-    - Master: Specify the `Master` model, `yarn` `local` `spark` `mesos`, where `spark` and `mesos` need to specify the `Master` service address, for example: 127.0.0.1:7077
+[//]: # (TODO: use the commented anchor below once our website template supports this syntax)
+[//]: # (- Please refer to [DolphinScheduler Task Parameters Appendix]&#40;appendix.md#default-task-parameters&#41; `Default Task Parameters` section for default parameters.)
 
-      > Click [here](https://seatunnel.apache.org/docs/2.1.2/command/usage) for more information on the usage of `Apache SeaTunnel command`
+- Please refer to [DolphinScheduler Task Parameters Appendix](appendix.md) `Default Task Parameters` section for default parameters.
+- Startup script: Select script name to start the task, including `seatunnel.sh`, `start-seatunnel-flink-13-connector-v2.sh`, `start-seatunnel-flink-15-connector-v2.sh`, `start-seatunnel-flink-connector-v2.sh`, `start-seatunnel-flink.sh`, `start-seatunnel-spark-2-connector-v2.sh`, `start-seatunnel-spark-3-connector-v2.sh`, `start-seatunnel-spark-connector-v2.sh`, `start-seatunnel-spark.sh`
+- FLINK
+- Run model: supports `run` and `run-application` modes
+- Option parameters: used to add the parameters of the Flink engine, such as `-m yarn-cluster -ynm seatunnel`
+- SPARK
+- Deployment mode: specify the deployment mode, `cluster` `client`
+- Master: Specify the `Master` model, `yarn` `local` `spark` `mesos`, where `spark` and `mesos` need to specify the `Master` service address, for example: 127.0.0.1:7077
+- SEATUNNEL_ENGINE
+- Deployment mode: specify the deployment mode, `cluster` `local`
+
+  > Click [here](https://seatunnel.apache.org/docs/command/usage) for more information on the usage of Apache SeaTunnel command`
 
 - Custom Configuration: Supports custom configuration or select configuration file from Resource Center
 
-  > Click [here](https://seatunnel.apache.org/docs/2.1.2/concept/config) for more information about `Apache SeaTunnel config` file
+  > Click [here](https://seatunnel.apache.org/docs/concept/config) for more information about `Apache SeaTunnel config` file
 
 - Script: Customize configuration information on the task node, including four parts: `env` `source` `transform` `sink`
+- Custom Parameters/Global Parameters: When custom parameters/global parameters are defined, the parameters will be passed to the SeaTunnel task, and the parameter value can be dynamically replaced during task execution by referencing the parameter with `${}` in the SeaTunnel task.
+
+  > Click [here](https://seatunnel.apache.org/docs/concept/config/#config-variable-substitution) for more information on `Apache SeaTunnel variable substitution`
 
 ## Task Example
 
@@ -71,4 +79,10 @@ sink {
 }
 
 ```
+
+### Support SeaTunnel Version
+
+- v2.3.1
+- v2.3.2
+- v2.3.3
 

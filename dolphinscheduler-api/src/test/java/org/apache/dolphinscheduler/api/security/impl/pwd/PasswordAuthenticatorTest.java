@@ -17,6 +17,7 @@
 
 package org.apache.dolphinscheduler.api.security.impl.pwd;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import org.apache.dolphinscheduler.api.controller.AbstractControllerTest;
@@ -32,9 +33,9 @@ import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,7 @@ import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
 public class PasswordAuthenticatorTest extends AbstractControllerTest {
+
     private static Logger logger = LoggerFactory.getLogger(PasswordAuthenticatorTest.class);
 
     @Autowired
@@ -58,7 +60,7 @@ public class PasswordAuthenticatorTest extends AbstractControllerTest {
     private Session mockSession;
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() {
         authenticator = new PasswordAuthenticator();
         beanFactory.autowireBean(authenticator);
@@ -80,23 +82,23 @@ public class PasswordAuthenticatorTest extends AbstractControllerTest {
     @Test
     public void testLogin() {
         when(usersService.queryUser("test", "test")).thenReturn(mockUser);
-        User login = authenticator.login("test", "test", "127.0.0.1");
-        Assert.assertNotNull(login);
+        User login = authenticator.login("test", "test");
+        Assertions.assertNotNull(login);
     }
 
     @Test
     public void testAuthenticate() {
         when(usersService.queryUser("test", "test")).thenReturn(mockUser);
-        when(sessionService.createSession(mockUser, "127.0.0.1")).thenReturn(mockSession.getId());
+        when(sessionService.createSessionIfAbsent(mockUser)).thenReturn(mockSession);
         Result result = authenticator.authenticate("test", "test", "127.0.0.1");
-        Assert.assertEquals(Status.SUCCESS.getCode(), (int) result.getCode());
+        Assertions.assertEquals(Status.SUCCESS.getCode(), (int) result.getCode());
         logger.info(result.toString());
 
         mockUser.setState(0);
         when(usersService.queryUser("test", "test")).thenReturn(mockUser);
-        when(sessionService.createSession(mockUser, "127.0.0.1")).thenReturn(mockSession.getId());
+        when(sessionService.createSessionIfAbsent(mockUser)).thenReturn(mockSession);
         Result result1 = authenticator.authenticate("test", "test", "127.0.0.1");
-        Assert.assertEquals(Status.USER_DISABLED.getCode(), (int) result1.getCode());
+        Assertions.assertEquals(Status.USER_DISABLED.getCode(), (int) result1.getCode());
         logger.info(result1.toString());
     }
 
@@ -104,9 +106,9 @@ public class PasswordAuthenticatorTest extends AbstractControllerTest {
     public void testGetAuthUser() {
         HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
         when(usersService.queryUser(mockUser.getId())).thenReturn(mockUser);
-        when(sessionService.getSession(request)).thenReturn(mockSession);
+        when(sessionService.getSession(any())).thenReturn(mockSession);
 
         User user = authenticator.getAuthUser(request);
-        Assert.assertNotNull(user);
+        Assertions.assertNotNull(user);
     }
 }

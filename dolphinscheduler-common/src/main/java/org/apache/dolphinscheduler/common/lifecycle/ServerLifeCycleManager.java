@@ -18,7 +18,9 @@
 package org.apache.dolphinscheduler.common.lifecycle;
 
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @UtilityClass
 public class ServerLifeCycleManager {
 
@@ -28,6 +30,10 @@ public class ServerLifeCycleManager {
 
     public static long getServerStartupTime() {
         return serverStartupTime;
+    }
+
+    public static void toRunning() {
+        serverStatus = ServerStatus.RUNNING;
     }
 
     public static boolean isRunning() {
@@ -52,20 +58,24 @@ public class ServerLifeCycleManager {
             throw new ServerLifeCycleException("The current server is already stopped, cannot change to waiting");
         }
 
-        if (serverStatus != ServerStatus.RUNNING) {
-            throw new ServerLifeCycleException("The current server is not at running status, cannot change to waiting");
+        if (serverStatus == ServerStatus.WAITING) {
+            log.warn("The current server is already at waiting status, cannot change to waiting");
+            return;
         }
         serverStatus = ServerStatus.WAITING;
     }
 
     /**
      * Recover from {@link ServerStatus#WAITING} to {@link ServerStatus#RUNNING}.
-     *
-     * @throws ServerLifeCycleException if change failed
      */
     public static synchronized void recoverFromWaiting() throws ServerLifeCycleException {
-        if (serverStatus != ServerStatus.WAITING) {
-            throw new ServerLifeCycleException("The current server status is not waiting, cannot recover form waiting");
+        if (isStopped()) {
+            throw new ServerLifeCycleException("The current server is already stopped, cannot recovery");
+        }
+
+        if (serverStatus == ServerStatus.RUNNING) {
+            log.warn("The current server status is already running, cannot recover form waiting");
+            return;
         }
         serverStartupTime = System.currentTimeMillis();
         serverStatus = ServerStatus.RUNNING;
@@ -75,6 +85,7 @@ public class ServerLifeCycleManager {
         if (serverStatus == ServerStatus.STOPPED) {
             return false;
         }
+        log.info("The current server status changed from {} to {}", serverStatus, ServerStatus.STOPPED);
         serverStatus = ServerStatus.STOPPED;
         return true;
     }

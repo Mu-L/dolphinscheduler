@@ -27,6 +27,11 @@ interface PluginInstanceReq {
   pluginInstanceParams: string
 }
 
+interface TestPluginInstanceReq {
+  pluginDefineId: number
+  pluginInstanceParams: string
+}
+
 interface InstanceNameReq {
   alertInstanceName: string
 }
@@ -55,5 +60,6 @@ export {
   InstanceNameReq,
   IdReq,
   UpdatePluginInstanceReq,
-  AlertPluginItem
+  AlertPluginItem,
+  TestPluginInstanceReq
 }

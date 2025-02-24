@@ -391,6 +391,48 @@ delimiter ;
 CALL modify_t_ds_task_group_col_description;
 DROP PROCEDURE modify_t_ds_task_group_col_description;
 
+-- alter table `t_ds_worker_group` add `other_params_json` text;
+drop procedure if exists add_t_ds_task_group_other_params_json;
+delimiter d//
+CREATE PROCEDURE add_t_ds_task_group_other_params_json()
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME='t_ds_worker_group'
+        AND TABLE_SCHEMA=(SELECT DATABASE())
+        AND COLUMN_NAME='other_params_json')
+    THEN
+alter table `t_ds_worker_group` add column `other_params_json` text DEFAULT NULL COMMENT "other params json";
+ELSE
+alter table `t_ds_worker_group` modify column `other_params_json` text DEFAULT NULL COMMENT "other params json";
+END IF;
+END;
+d//
+delimiter ;
+
+call add_t_ds_task_group_other_params_json();
+drop procedure if exists add_t_ds_task_group_other_params_json;
+
+-- alter table `t_ds_process_instance` add `state_history` text;
+drop procedure if exists add_t_ds_process_instance_state_history;
+delimiter d//
+CREATE PROCEDURE add_t_ds_process_instance_state_history()
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME='t_ds_process_instance'
+        AND TABLE_SCHEMA=(SELECT DATABASE())
+        AND COLUMN_NAME='state_history')
+    THEN
+alter table `t_ds_process_instance` add column `state_history` text DEFAULT NULL COMMENT "other params json";
+ELSE
+alter table `t_ds_process_instance` modify column `state_history` text DEFAULT NULL COMMENT "other params json";
+END IF;
+END;
+d//
+delimiter ;
+call add_t_ds_process_instance_state_history();
+drop procedure if exists add_t_ds_process_instance_state_history;
+
+
 alter table t_ds_process_instance alter column process_instance_priority set default 2;
 alter table t_ds_schedules alter column process_instance_priority set default 2;
 alter table t_ds_command alter column process_instance_priority set default 2;

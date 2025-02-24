@@ -20,11 +20,14 @@ package org.apache.dolphinscheduler.plugin.task.emr;
 import org.apache.dolphinscheduler.plugin.task.api.TaskConstants;
 import org.apache.dolphinscheduler.plugin.task.api.TaskException;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
+import org.apache.dolphinscheduler.plugin.task.api.utils.ParameterUtils;
 
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import lombok.extern.slf4j.Slf4j;
 
 import com.amazonaws.SdkBaseException;
 import com.amazonaws.services.elasticmapreduce.model.ClusterState;
@@ -40,6 +43,7 @@ import com.amazonaws.services.elasticmapreduce.model.TerminateJobFlowsResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Sets;
 
+@Slf4j
 public class EmrJobFlowTask extends AbstractEmrTask {
 
     private final HashSet<String> waitingStateSet = Sets.newHashSet(
@@ -78,12 +82,12 @@ public class EmrJobFlowTask extends AbstractEmrTask {
             clusterStatus = getClusterStatus();
 
         } catch (EmrTaskException | SdkBaseException e) {
-            logger.error("emr task submit failed with error", e);
+            log.error("emr task submit failed with error", e);
             throw new TaskException("emr task submit failed", e);
         } finally {
             final int exitStatusCode = calculateExitStatusCode(clusterStatus);
             setExitStatusCode(exitStatusCode);
-            logger.info("emr task finished with cluster status : {}", clusterStatus);
+            log.info("emr task finished with cluster status : {}", clusterStatus);
         }
     }
 
@@ -98,14 +102,14 @@ public class EmrJobFlowTask extends AbstractEmrTask {
                 clusterStatus = getClusterStatus();
             }
         } catch (EmrTaskException | SdkBaseException e) {
-            logger.error("emr task failed with error", e);
+            log.error("emr task failed with error", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new TaskException("Execute emr task failed", e);
         } finally {
             final int exitStatusCode = calculateExitStatusCode(clusterStatus);
             setExitStatusCode(exitStatusCode);
-            logger.info("emr task finished with cluster status : {}", clusterStatus);
+            log.info("emr task finished with cluster status : {}", clusterStatus);
         }
     }
 
@@ -114,13 +118,17 @@ public class EmrJobFlowTask extends AbstractEmrTask {
      *
      * @return RunJobFlowRequest
      */
-    private RunJobFlowRequest createRunJobFlowRequest() {
+    protected RunJobFlowRequest createRunJobFlowRequest() {
 
         final RunJobFlowRequest runJobFlowRequest;
+        String jobFlowDefineJson = null;
         try {
-            runJobFlowRequest = objectMapper.readValue(emrParameters.getJobFlowDefineJson(), RunJobFlowRequest.class);
+            jobFlowDefineJson = ParameterUtils.convertParameterPlaceholders(
+                    emrParameters.getJobFlowDefineJson(),
+                    ParameterUtils.convert(taskExecutionContext.getPrepareParamsMap()));
+            runJobFlowRequest = objectMapper.readValue(jobFlowDefineJson, RunJobFlowRequest.class);
         } catch (JsonProcessingException e) {
-            throw new EmrTaskException("can not parse RunJobFlowRequest from json", e);
+            throw new EmrTaskException("can not parse RunJobFlowRequest from json: " + jobFlowDefineJson, e);
         }
 
         return runJobFlowRequest;
@@ -165,18 +173,18 @@ public class EmrJobFlowTask extends AbstractEmrTask {
             throw new EmrTaskException("fetch cluster status failed");
         }
         ClusterStatus clusterStatus = result.getCluster().getStatus();
-        logger.info("emr cluster [clusterId:{}] running with status:{}", clusterId, clusterStatus);
+        log.info("emr cluster [clusterId:{}] running with status:{}", clusterId, clusterStatus);
         return clusterStatus;
 
     }
 
     @Override
     public void cancelApplication() throws TaskException {
-        logger.info("trying terminate job flow, taskId:{}, clusterId:{}", this.taskExecutionContext.getTaskInstanceId(),
+        log.info("trying terminate job flow, taskId:{}, clusterId:{}", this.taskExecutionContext.getTaskInstanceId(),
                 clusterId);
         TerminateJobFlowsRequest terminateJobFlowsRequest = new TerminateJobFlowsRequest().withJobFlowIds(clusterId);
         TerminateJobFlowsResult terminateJobFlowsResult = emrClient.terminateJobFlows(terminateJobFlowsRequest);
-        logger.info("the result of terminate job flow is:{}", terminateJobFlowsResult);
+        log.info("the result of terminate job flow is:{}", terminateJobFlowsResult);
     }
 
 }

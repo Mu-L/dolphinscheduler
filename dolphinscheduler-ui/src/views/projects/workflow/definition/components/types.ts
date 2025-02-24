@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-export type { ProcessInstanceReq } from '@/service/modules/executors/types'
+export type { WorkflowInstanceReq } from '@/service/modules/executors/types'
 
 export interface IEnvironmentOption {
   label: string
@@ -36,6 +36,7 @@ export interface IParam {
 export interface ITimingState {
   projectCode: number
   workerGroups: Array<IOption>
+  tenantList: Array<IOption>
   alertGroups: Array<IOption>
   environmentList: Array<IEnvironmentOption>
   startParamsList: Array<IParam>

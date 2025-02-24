@@ -38,20 +38,26 @@ type Exec =
 
 interface ExecuteReq {
   executeType: Execute
-  processInstanceId: number
+  workflowInstanceId: number
+}
+
+interface ExecuteTaskReq {
+  workflowInstanceId: number
+  startNodeList: number
+  taskDependType: string
 }
 
 interface ProjectCodeReq {
   projectCode: number
 }
 
-interface ProcessDefinitionCodeReq {
-  processDefinitionCode: number
+interface WorkflowDefinitionCodeReq {
+  workflowDefinitionCode: number
 }
 
-interface ProcessInstanceReq extends ProcessDefinitionCodeReq {
+interface WorkflowInstanceReq extends WorkflowDefinitionCodeReq {
   failureStrategy: 'END' | 'CONTINUE'
-  processInstancePriority: 'HIGHEST' | 'HIGH' | 'MEDIUM' | 'LOW' | 'LOWEST'
+  workflowInstancePriority: 'HIGHEST' | 'HIGH' | 'MEDIUM' | 'LOW' | 'LOWEST'
   scheduleTime: string
   warningGroupId: number
   warningType: 'NONE' | 'SUCCESS' | 'FAILURE' | 'ALL'
@@ -65,11 +71,13 @@ interface ProcessInstanceReq extends ProcessDefinitionCodeReq {
   taskDependType?: 'TASK_ONLY' | 'TASK_PRE' | 'TASK_POST'
   timeout?: number
   workerGroup?: string
+  version?: number
 }
 
 export {
   ExecuteReq,
+  ExecuteTaskReq,
   ProjectCodeReq,
-  ProcessDefinitionCodeReq,
-  ProcessInstanceReq
+  WorkflowDefinitionCodeReq,
+  WorkflowInstanceReq
 }

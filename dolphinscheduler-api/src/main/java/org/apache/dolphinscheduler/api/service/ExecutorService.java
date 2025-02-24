@@ -17,96 +17,73 @@
 
 package org.apache.dolphinscheduler.api.service;
 
+import org.apache.dolphinscheduler.api.dto.workflow.WorkflowBackFillRequest;
+import org.apache.dolphinscheduler.api.dto.workflow.WorkflowTriggerRequest;
+import org.apache.dolphinscheduler.api.dto.workflowInstance.WorkflowExecuteResponse;
 import org.apache.dolphinscheduler.api.enums.ExecuteType;
-import org.apache.dolphinscheduler.common.enums.CommandType;
-import org.apache.dolphinscheduler.common.enums.ComplementDependentMode;
-import org.apache.dolphinscheduler.common.enums.FailureStrategy;
-import org.apache.dolphinscheduler.common.enums.Priority;
-import org.apache.dolphinscheduler.common.enums.RunMode;
 import org.apache.dolphinscheduler.common.enums.TaskDependType;
-import org.apache.dolphinscheduler.common.enums.WarningType;
-import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
 import org.apache.dolphinscheduler.dao.entity.User;
-import org.apache.dolphinscheduler.remote.dto.WorkflowExecuteDto;
+import org.apache.dolphinscheduler.dao.entity.WorkflowDefinition;
 
+import java.util.List;
 import java.util.Map;
 
-/**
- * executor service
- */
 public interface ExecutorService {
 
     /**
-     * execute process instance
-     *
-     * @param loginUser login user
-     * @param projectCode project code
-     * @param processDefinitionCode process definition code
-     * @param cronTime cron time
-     * @param commandType command type
-     * @param failureStrategy failure strategy
-     * @param startNodeList start nodelist
-     * @param taskDependType node dependency type
-     * @param warningType warning type
-     * @param warningGroupId notify group id
-     * @param processInstancePriority process instance priority
-     * @param workerGroup worker group name
-     * @param environmentCode environment code
-     * @param runMode run mode
-     * @param timeout timeout
-     * @param startParams the global param values which pass to new process instance
-     * @param expectedParallelismNumber the expected parallelism number when execute complement in parallel mode
-     * @return execute process instance code
+     * Trigger the workflow and return the workflow instance id.
      */
-    Map<String, Object> execProcessInstance(User loginUser, long projectCode,
-                                            long processDefinitionCode, String cronTime, CommandType commandType,
-                                            FailureStrategy failureStrategy, String startNodeList,
-                                            TaskDependType taskDependType, WarningType warningType, int warningGroupId,
-                                            RunMode runMode,
-                                            Priority processInstancePriority, String workerGroup, Long environmentCode, Integer timeout,
-                                            Map<String, String> startParams, Integer expectedParallelismNumber,
-                                            int dryRun, int testFlag,
-                                            ComplementDependentMode complementDependentMode);
+    Integer triggerWorkflowDefinition(final WorkflowTriggerRequest workflowTriggerRequest);
 
     /**
-     * check whether the process definition can be executed
-     *
-     * @param projectCode project code
-     * @param processDefinition process definition
-     * @param processDefineCode process definition code
-     * @param verison process definition version
-     * @return check result code
+     * Backfill the workflow and return the workflow instance ids.
      */
-    Map<String, Object> checkProcessDefinitionValid(long projectCode, ProcessDefinition processDefinition, long processDefineCode, Integer verison);
+    List<Integer> backfillWorkflowDefinition(final WorkflowBackFillRequest workflowBackFillRequest);
 
     /**
-     * do action to process instance：pause, stop, repeat, recover from pause, recover from stop
+     * check whether the workflow definition can be executed
      *
-     * @param loginUser login user
-     * @param projectCode project code
-     * @param processInstanceId process instance id
-     * @param executeType execute type
+     * @param projectCode       project code
+     * @param workflowDefinition workflow definition
+     * @param workflowDefinitionCode workflow definition code
+     * @param version           workflow definition version
+     */
+    void checkWorkflowDefinitionValid(long projectCode, WorkflowDefinition workflowDefinition,
+                                      long workflowDefinitionCode,
+                                      Integer version);
+
+    /**
+     * do action to execute task in workflow instance
+     *
+     * @param loginUser         login user
+     * @param projectCode       project code
+     * @param workflowInstanceId workflow instance id
+     * @param startNodeList     start node list
+     * @param taskDependType    task depend type
      * @return execute result code
      */
-    Map<String, Object> execute(User loginUser, long projectCode, Integer processInstanceId, ExecuteType executeType);
+    WorkflowExecuteResponse executeTask(User loginUser,
+                                        long projectCode,
+                                        Integer workflowInstanceId,
+                                        String startNodeList,
+                                        TaskDependType taskDependType);
 
     /**
-     * check if sub processes are offline before starting process definition
-     *
-     * @param processDefinitionCode process definition code
-     * @return check result code
+     * Control workflow instance, you can use this interface to pause, stop, repeat, recover a workflow instance.
      */
-    Map<String, Object> startCheckByProcessDefinedCode(long processDefinitionCode);
+    void controlWorkflowInstance(User loginUser, Integer workflowInstanceId, ExecuteType executeType);
 
     /**
-     * check if the current process has subprocesses and all subprocesses are valid
-     * @param processDefinition
+     * check if the current workflow has sub workflows and all sub workflows are valid
+     *
+     * @param workflowDefinition
      * @return check result
      */
-    boolean checkSubProcessDefinitionValid(ProcessDefinition processDefinition);
+    boolean checkSubWorkflowDefinitionValid(WorkflowDefinition workflowDefinition);
 
     /**
      * force start Task Instance
+     *
      * @param loginUser
      * @param queueId
      * @return
@@ -114,27 +91,23 @@ public interface ExecutorService {
     Map<String, Object> forceStartTaskInstance(User loginUser, int queueId);
 
     /**
-     * query executing workflow data in Master memory
-     * @param processInstanceId
-     * @return
-     */
-    WorkflowExecuteDto queryExecutingWorkflowByProcessInstanceId(Integer processInstanceId);
-
-    /**
      * execute stream task instance
      *
-     * @param loginUser login user
-     * @param projectCode project code
-     * @param warningGroupId notify group id
-     * @param workerGroup worker group name
+     * @param loginUser       login user
+     * @param projectCode     project code
+     * @param warningGroupId  notify group id
+     * @param workerGroup     worker group name
+     * @param tenantCode      tenant code
      * @param environmentCode environment code
-     * @param startParams the global param values which pass to new process instance
-     * @return execute process instance code
+     * @param startParams     the global param values which pass to new workflow instance
+     * @return execute workflow instance code
      */
-    Map<String, Object> execStreamTaskInstance(User loginUser, long projectCode,
-                                            long taskDefinitionCode, int taskDefinitionVersion,
-                                            int warningGroupId,
-                                            String workerGroup, Long environmentCode,
-                                            Map<String, String> startParams,
-                                            int dryRun);
+    void execStreamTaskInstance(User loginUser, long projectCode,
+                                long taskDefinitionCode, int taskDefinitionVersion,
+                                int warningGroupId,
+                                String workerGroup,
+                                String tenantCode,
+                                Long environmentCode,
+                                Map<String, String> startParams,
+                                int dryRun);
 }

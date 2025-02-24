@@ -24,7 +24,6 @@ import type { IJsonItem } from '../types'
 export function useSqlType(model: { [field: string]: any }): IJsonItem[] {
   const { t } = useI18n()
   const querySpan = computed(() => (model.sqlType === '0' ? 6 : 0))
-  const nonQuerySpan = computed(() => (model.sqlType === '1' ? 18 : 0))
   const emailSpan = computed(() =>
     model.sqlType === '0' && model.sendEmail ? 24 : 0
   )
@@ -69,19 +68,10 @@ export function useSqlType(model: { [field: string]: any }): IJsonItem[] {
       }
     },
     {
-      type: 'input',
-      field: 'segmentSeparator',
-      name: t('project.node.segment_separator'),
-      props: {
-        placeholder: t('project.node.segment_separator_tips')
-      },
-      span: nonQuerySpan
-    },
-    {
       type: 'switch',
       field: 'sendEmail',
       span: querySpan,
-      name: t('project.node.send_email')
+      name: t('project.node.send_alarm')
     },
     {
       type: 'select',

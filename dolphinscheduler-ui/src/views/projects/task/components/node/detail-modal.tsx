@@ -24,7 +24,8 @@ import {
   provide,
   computed,
   h,
-  Ref
+  Ref,
+  onMounted
 } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/modal'
@@ -39,7 +40,7 @@ import {
 import { NIcon } from 'naive-ui'
 import { TASK_TYPES_MAP } from '../../constants/task-type'
 import { Router, useRouter } from 'vue-router'
-import { querySubProcessInstanceByTaskCode } from '@/service/modules/process-instances'
+import { querySubWorkflowInstanceByTaskCode } from '@/service/modules/workflow-instances'
 import { useTaskNodeStore } from '@/store/project/task-node'
 import type {
   ITaskData,
@@ -48,6 +49,8 @@ import type {
   IWorkflowTaskInstance,
   WorkflowInstance
 } from './types'
+import { queryProjectPreferenceByProjectCode } from '@/service/modules/projects-preference'
+import { INodeData } from './types'
 
 const props = {
   show: {
@@ -74,7 +77,7 @@ const props = {
   definition: {
     type: Object as PropType<Ref<EditWorkflowDefinition>>
   },
-  processInstance: {
+  workflowInstance: {
     type: Object as PropType<WorkflowInstance>
   },
   taskInstance: {
@@ -109,6 +112,7 @@ const NodeDetailModal = defineComponent({
     }
 
     const headerLinks = ref([] as any)
+    const projectPreferences = ref({} as any)
 
     const handleViewLog = () => {
       if (props.taskInstance) {
@@ -116,7 +120,25 @@ const NodeDetailModal = defineComponent({
       }
     }
 
-    const initHeaderLinks = (processInstance: any, taskType?: ITaskType) => {
+    const initProjectPreferences = (projectCode: number) => {
+      queryProjectPreferenceByProjectCode(projectCode).then((result: any) => {
+        if (result?.preferences && result.state === 1) {
+          projectPreferences.value = JSON.parse(result.preferences)
+        }
+      })
+    }
+
+    const restructureNodeData = (data: INodeData) => {
+      if (!data?.id) {
+        for (const item in projectPreferences.value) {
+          if (projectPreferences.value[item] !== null && item in data) {
+            Object.assign(data, { item: projectPreferences.value[item] })
+          }
+        }
+      }
+    }
+
+    const initHeaderLinks = (workflowInstance: any, taskType?: ITaskType) => {
       headerLinks.value = [
         {
           text: t('project.node.instructions'),
@@ -140,9 +162,8 @@ const NodeDetailModal = defineComponent({
           action: () => {
             router.push({
               name: 'task-instance',
-              params: {
-                processInstanceId: processInstance.id,
-                taskName: props.data.name
+              query: {
+                taskCode: props.data.code
               }
             })
           },
@@ -158,27 +179,27 @@ const NodeDetailModal = defineComponent({
         },
         {
           text: t('project.node.enter_this_child_node'),
-          show: props.data.taskType === 'SUB_PROCESS',
+          show: props.data.taskType === 'SUB_WORKFLOW',
           disabled:
             !props.data.id ||
             (router.currentRoute.value.name === 'workflow-instance-detail' &&
               !props.taskInstance),
           action: () => {
             if (router.currentRoute.value.name === 'workflow-instance-detail') {
-              querySubProcessInstanceByTaskCode(
+              querySubWorkflowInstanceByTaskCode(
                 { taskId: props.taskInstance?.id },
                 { projectCode: props.projectCode }
               ).then((res: any) => {
                 router.push({
                   name: 'workflow-instance-detail',
-                  params: { id: res.subProcessInstanceId },
-                  query: { code: props.data.taskParams?.processDefinitionCode }
+                  params: { id: res.subWorkflowInstanceId },
+                  query: { code: props.data.taskParams?.workflowDefinitionCode }
                 })
               })
             } else {
               router.push({
                 name: 'workflow-definition-detail',
-                params: { code: props.data.taskParams?.processDefinitionCode }
+                params: { code: props.data.taskParams?.workflowDefinitionCode }
               })
             }
           },
@@ -190,7 +211,7 @@ const NodeDetailModal = defineComponent({
     const onTaskTypeChange = (taskType: ITaskType) => {
       // eslint-disable-next-line vue/no-mutating-props
       props.data.taskType = taskType
-      initHeaderLinks(props.processInstance, props.data.taskType)
+      initHeaderLinks(props.workflowInstance, props.data.taskType)
     }
 
     provide(
@@ -204,14 +225,20 @@ const NodeDetailModal = defineComponent({
       }))
     )
 
+    onMounted(() => {
+      initProjectPreferences(props.projectCode)
+    })
+
     watch(
       () => [props.show, props.data],
       async () => {
         if (!props.show) return
-        initHeaderLinks(props.processInstance, props.data.taskType)
+        initHeaderLinks(props.workflowInstance, props.data.taskType)
         taskStore.init()
+        const nodeData = formatModel(props.data)
         await nextTick()
-        detailRef.value.value.setValues(formatModel(props.data))
+        restructureNodeData(nodeData)
+        detailRef.value.value.setValues(nodeData)
       }
     )
 

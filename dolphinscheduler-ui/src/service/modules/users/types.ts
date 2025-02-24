@@ -62,10 +62,6 @@ interface ProjectCodeReq {
   projectCode: string
 }
 
-interface GrantUDFReq {
-  udfIds: string
-}
-
 interface GrantNamespaceReq {
   namespaceIds: string
 }
@@ -100,7 +96,6 @@ interface UserInfoRes extends UserReq, IdReq {
   alertGroup?: any
   createTime: string
   updateTime: string
-  securityConfigType: 'PASSWORD' | 'LDAP'
 }
 
 interface UserListRes {
@@ -131,7 +126,6 @@ export {
   GrantResourceReq,
   GrantProject,
   ProjectCodeReq,
-  GrantUDFReq,
   GrantNamespaceReq,
   ListAllReq,
   ListReq,

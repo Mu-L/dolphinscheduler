@@ -19,24 +19,21 @@ package org.apache.dolphinscheduler.api.service;
 
 import org.apache.dolphinscheduler.api.utils.Result;
 import org.apache.dolphinscheduler.common.enums.TaskExecuteType;
+import org.apache.dolphinscheduler.dao.entity.TaskInstance;
 import org.apache.dolphinscheduler.dao.entity.User;
 import org.apache.dolphinscheduler.plugin.task.api.enums.TaskExecutionStatus;
 
-import java.util.Map;
-
-/**
- * task instance service
- */
 public interface TaskInstanceService {
 
     /**
-     * query task list by project, process instance, task name, task start time, task end time, task status, keyword paging
+     * query task list by project, workflow instance, task name, task start time, task end time, task status, keyword paging
      *
      * @param loginUser login user
      * @param projectCode project code
-     * @param processInstanceId process instance id
+     * @param workflowInstanceId workflow instance id
      * @param searchVal search value
      * @param taskName task name
+     * @param taskCode task code
      * @param stateType state type
      * @param host host
      * @param startDate start time
@@ -48,10 +45,11 @@ public interface TaskInstanceService {
      */
     Result queryTaskListPaging(User loginUser,
                                long projectCode,
-                               Integer processInstanceId,
-                               String processInstanceName,
-                               String processDefinitionName,
+                               Integer workflowInstanceId,
+                               String workflowInstanceName,
+                               String workflowDefinitionName,
                                String taskName,
+                               Long taskCode,
                                String executorName,
                                String startDate,
                                String endDate,
@@ -70,9 +68,9 @@ public interface TaskInstanceService {
      * @param taskInstanceId task instance id
      * @return the result code and msg
      */
-    Map<String, Object> forceTaskSuccess(User loginUser,
-                                         long projectCode,
-                                         Integer taskInstanceId);
+    void forceTaskSuccess(User loginUser,
+                          long projectCode,
+                          Integer taskInstanceId);
 
     /**
      * task savepoint
@@ -91,4 +89,16 @@ public interface TaskInstanceService {
      * @return
      */
     Result stopTask(User loginUser, long projectCode, Integer taskInstanceId);
+
+    /**
+     * query taskInstance by taskInstanceCode
+     *
+     * @param loginUser   login user
+     * @param projectCode project code
+     * @param taskInstanceId taskInstance id
+     * @return the result code and msg
+     */
+    TaskInstance queryTaskInstanceById(User loginUser, long projectCode, Long taskInstanceId);
+
+    void deleteByWorkflowInstanceId(Integer workflowInstanceId);
 }

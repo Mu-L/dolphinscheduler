@@ -33,7 +33,7 @@ waste time。
         <tr>
             <td style="text-align: center;">Bug</td>
             <td style="text-align: center;">Fix</td>
-            <td style="text-align: center;">[Fix-3333][server] Fix xxx</td>
+            <td style="text-align: center;">[Fix-3333][ui] Fix xxx</td>
         </tr>
         <tr>
             <td style="text-align: center;">Improvement</td>
@@ -46,9 +46,23 @@ waste time。
             <td style="text-align: center;">[Test-3333][api] Add the e2e test of xxx</td>
         </tr>
         <tr>
-            <td style="text-align: center;">Sub-Task</td>
-            <td style="text-align: center;">Sub-Task 对应的父类型</td>
-            <td style="text-align: center;">[Feature-3333][server] Implement xxx</td>
+            <td style="text-align: center;">Doc</td>
+            <td style="text-align: center;">Doc</td>
+            <td style="text-align: center;">[Doc-3333] Improve xxx</td>
+        <tr>
+            <td style="text-align: center;">E2E</td>
+            <td style="text-align: center;">E2E</td>
+            <td style="text-align: center;">[E2E-3333] Implement xxx</td>
+        </tr>
+        <tr>
+            <td style="text-align: center;">CI</td>
+            <td style="text-align: center;">CI</td>
+            <td style="text-align: center;">[CI] Improve xxx</td>
+        </tr>
+        <tr>
+            <td style="text-align: center;">Chore</td>
+            <td style="text-align: center;">Chore</td>
+            <td style="text-align: center;">[Chore] Improve xxx</td>
         </tr>
     </tbody>
 </table>
@@ -65,8 +79,12 @@ waste time。
 
 ### Pull Request Code Style
 
+[//]: # (TODO: use the commented anchor below once our website template supports this syntax)
+[//]: # (DolphinScheduler使用`Spotless`为您自动修复代码风格和格式问题，)
+[//]: # (详情见[开发手册]&#40;../development-environment-setup.md#代码风格&#41;`代码风格`一栏。)
+
 DolphinScheduler使用`Spotless`为您自动修复代码风格和格式问题，
-详情见[代码风格](../development-environment-setup.md#代码风格)。
+详情见[开发手册](../development-environment-setup.md)`代码风格`一栏。
 
 ### 相关问题
 

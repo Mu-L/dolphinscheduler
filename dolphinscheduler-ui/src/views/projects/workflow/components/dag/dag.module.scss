@@ -104,11 +104,8 @@ $bgLight: #ffffff;
     &.icon-shell {
       background-image: url('/images/task-icons/shell.png');
     }
-    &.icon-sub_process {
-      background-image: url('/images/task-icons/sub_process.png');
-    }
-    &.icon-data_quality {
-      background-image: url('/images/task-icons/data_quality.png');
+    &.icon-sub_workflow {
+      background-image: url('/images/task-icons/sub_workflow.png');
     }
     &.icon-procedure {
       background-image: url('/images/task-icons/procedure.png');
@@ -134,9 +131,6 @@ $bgLight: #ffffff;
     }
     &.icon-datax {
       background-image: url('/images/task-icons/datax.png');
-    }
-    &.icon-pigeon {
-      background-image: url('/images/task-icons/pigeon.png');
     }
     &.icon-sqoop {
       background-image: url('/images/task-icons/sqoop.png');
@@ -192,6 +186,27 @@ $bgLight: #ffffff;
     &.icon-pytorch {
       background-image: url('/images/task-icons/pytorch.png');
     }
+    &.icon-dms {
+      background-image: url('/images/task-icons/dms.png');
+    }
+    &.icon-datasync {
+      background-image: url('/images/task-icons/datasync.png');
+    }
+    &.icon-linkis {
+      background-image: url('/images/task-icons/linkis.png');
+    }
+    &.icon-kubeflow {
+      background-image: url('/images/task-icons/kubeflow.png');
+    }
+    &.icon-data_factory {
+      background-image: url('/images/task-icons/data_factory.png');
+    }
+    &.icon-remoteshell {
+      background-image: url('/images/task-icons/remoteshell.png');
+    }
+    &.icon-icon-aliyun_serverless_spark {
+      background-image: url('/images/task-icons/aliyun_serverless_spark.png');
+    }
   }
 
   &:hover {
@@ -199,11 +214,8 @@ $bgLight: #ffffff;
       &.icon-shell {
         background-image: url('/images/task-icons/shell_hover.png');
       }
-      &.icon-sub_process {
-        background-image: url('/images/task-icons/sub_process_hover.png');
-      }
-      &.icon-data_quality {
-        background-image: url('/images/task-icons/data_quality_hover.png');
+      &.icon-sub_workflow {
+        background-image: url('/images/task-icons/sub_workflow_hover.png');
       }
       &.icon-procedure {
         background-image: url('/images/task-icons/procedure_hover.png');
@@ -229,9 +241,6 @@ $bgLight: #ffffff;
       }
       &.icon-datax {
         background-image: url('/images/task-icons/datax_hover.png');
-      }
-      &.icon-pigeon {
-        background-image: url('/images/task-icons/pigeon_hover.png');
       }
       &.icon-sqoop {
         background-image: url('/images/task-icons/sqoop_hover.png');
@@ -287,7 +296,38 @@ $bgLight: #ffffff;
       &.icon-pytorch {
         background-image: url('/images/task-icons/pytorch_hover.png');
       }
+      &.icon-dms {
+        background-image: url('/images/task-icons/dms_hover.png');
+      }
+      &.icon-datasync {
+        background-image: url('/images/task-icons/datasync_hover.png');
+      }
+      &.icon-linkis {
+        background-image: url('/images/task-icons/linkis_hover.png');
+      }
+      &.icon-kubeflow {
+        background-image: url('/images/task-icons/kubeflow_hover.png');
+      }
+      &.icon-data_factory {
+        background-image: url('/images/task-icons/data_factory_hover.png');
+      }
+      &.icon-remoteshell {
+        background-image: url('/images/task-icons/remoteshell_hover.png');
+      }
+      &.icon-aliyun_serverless_spark {
+        background-image: url('/images/task-icons/aliyun_serverless_spark_hover.png');
+      }
     }
+  }
+
+  span {
+    display: flex;
+    flex: 1;
+  }
+
+  .stars {
+    display: flex;
+    cursor: pointer;
   }
 }
 

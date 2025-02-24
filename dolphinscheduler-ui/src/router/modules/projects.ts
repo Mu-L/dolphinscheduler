@@ -54,6 +54,28 @@ export default {
       }
     },
     {
+      path: '/projects/:projectCode/parameter',
+      name: 'projects-parameter',
+      component: components['projects-parameter'],
+      meta: {
+        title: '项目级参数',
+        activeMenu: 'projects',
+        showSide: true,
+        auth: []
+      }
+    },
+    {
+      path: '/projects/:projectCode/preferences',
+      name: 'projects-preference',
+      component: components['projects-preference'],
+      meta: {
+        title: '项目偏好设置',
+        activeMenu: 'projects',
+        showSide: true,
+        auth: []
+      }
+    },
+    {
       path: '/projects/:projectCode/workflow/relation',
       name: 'workflow-relation',
       component: components['projects-workflow-relation'],
@@ -112,6 +134,17 @@ export default {
       }
     },
     {
+      path: '/projects/:projectCode/workflow/timings',
+      name: 'workflow-timing-list',
+      component: components['projects-workflow-timing'],
+      meta: {
+        title: '工作流定时管理',
+        activeMenu: 'projects',
+        showSide: true,
+        auth: []
+      }
+    },
+    {
       path: '/projects/:projectCode/workflow/instances',
       name: 'workflow-instance-list',
       component: components['projects-workflow-instance'],
@@ -142,17 +175,6 @@ export default {
         title: '工作流实例甘特图',
         activeMenu: 'projects',
         activeSide: '/projects/:projectCode/workflow/instances',
-        showSide: true,
-        auth: []
-      }
-    },
-    {
-      path: '/projects/:projectCode/task/definitions',
-      name: 'task-definition',
-      component: components['projects-task-definition'],
-      meta: {
-        title: '任务定义',
-        activeMenu: 'projects',
         showSide: true,
         auth: []
       }

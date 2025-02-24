@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.dolphinscheduler.dao.mapper;
 
 import org.apache.dolphinscheduler.dao.BaseDaoTest;
@@ -23,9 +24,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
 public class SessionMapperTest extends BaseDaoTest {
 
@@ -38,7 +41,7 @@ public class SessionMapperTest extends BaseDaoTest {
      * @return Session
      */
     private Session insertOne() {
-        //insertOne
+        // insertOne
         Session session = new Session();
         session.setId(UUID.randomUUID().toString());
         session.setLastLoginTime(new Date());
@@ -51,23 +54,23 @@ public class SessionMapperTest extends BaseDaoTest {
      * test update
      */
     @Test
-    public void testUpdate(){
-        //insertOne
+    public void testUpdate() {
+        // insertOne
         Session session = insertOne();
         session.setLastLoginTime(new Date());
-        //update
+        // update
         int update = sessionMapper.updateById(session);
-        Assert.assertEquals(update, 1);
+        Assertions.assertEquals(1, update);
     }
 
     /**
      * test delete
      */
     @Test
-    public void testDelete(){
+    public void testDelete() {
         Session session = insertOne();
         int delete = sessionMapper.deleteById(session.getId());
-        Assert.assertEquals(delete, 1);
+        Assertions.assertEquals(1, delete);
     }
 
     /**
@@ -76,9 +79,9 @@ public class SessionMapperTest extends BaseDaoTest {
     @Test
     public void testQuery() {
         Session session = insertOne();
-        //query
+        // query
         List<Session> sessions = sessionMapper.selectList(null);
-        Assert.assertNotEquals(sessions.size(), 0);
+        Assertions.assertNotEquals(0, sessions.size());
     }
 
     /**
@@ -87,8 +90,9 @@ public class SessionMapperTest extends BaseDaoTest {
     @Test
     public void testQueryByUserId() {
         Session session = insertOne();
-        List<Session> sessions = sessionMapper.queryByUserId(session.getUserId());
-        Assert.assertNotEquals(sessions.size(), 0);
+        List<Session> sessions =
+                sessionMapper.selectList(new QueryWrapper<>(Session.builder().userId(session.getUserId()).build()));
+        Assertions.assertNotEquals(0, sessions.size());
 
     }
 }

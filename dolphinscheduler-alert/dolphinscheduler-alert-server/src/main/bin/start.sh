@@ -15,18 +15,55 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+set -eo pipefail
 
-BIN_DIR=$(dirname $0)
-DOLPHINSCHEDULER_HOME=${DOLPHINSCHEDULER_HOME:-$(cd $BIN_DIR/..; pwd)}
+BIN_DIR=$(dirname $(readlink -f "$0"))
+DOLPHINSCHEDULER_HOME=$(cd ${BIN_DIR}/../..;pwd)
+ALERT_HOME=$(cd ${BIN_DIR}/..;pwd)
 
-source "$DOLPHINSCHEDULER_HOME/conf/dolphinscheduler_env.sh"
+source "$ALERT_HOME/conf/dolphinscheduler_env.sh"
 
-JAVA_OPTS=${JAVA_OPTS:-"-server -Duser.timezone=${SPRING_JACKSON_TIME_ZONE} -Xms1g -Xmx1g -Xmn512m -XX:+PrintGCDetails -Xloggc:gc.log -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=dump.hprof"}
+JVM_ARGS_ENV_FILE=${ALERT_HOME}/bin/jvm_args_env.sh
+JVM_ARGS="-server"
 
-if [[ "$DOCKER" == "true" ]]; then
-  JAVA_OPTS="${JAVA_OPTS} -XX:-UseContainerSupport"
+if [ -f $JVM_ARGS_ENV_FILE ]; then
+  while read line
+  do
+      if [[ "$line" == -* ]]; then
+            JVM_ARGS="${JVM_ARGS} $line"
+      fi
+  done < $JVM_ARGS_ENV_FILE
 fi
 
-java $JAVA_OPTS \
-  -cp "$DOLPHINSCHEDULER_HOME/conf":"$DOLPHINSCHEDULER_HOME/libs/*" \
+JAVA_OPTS=${JAVA_OPTS:-"${JVM_ARGS}"}
+
+if [[ "$DOCKER" == "true" ]]; then
+  JAVA_OPTS="${JAVA_OPTS} -XX:-UseContainerSupport -DDOCKER=true"
+fi
+
+echo "JAVA_HOME=${JAVA_HOME}"
+echo "JAVA_OPTS=${JAVA_OPTS}"
+
+MODULES_PATH=(
+alert-server
+)
+
+CP=""
+for module in ${MODULES_PATH[@]}; do
+  CP=$CP:"$DOLPHINSCHEDULER_HOME/$module/libs/*"
+done
+
+PLUGINS_PATH=(
+alert-plugins
+)
+
+for plugin in ${PLUGINS_PATH[@]}; do
+  if [ -d "$DOLPHINSCHEDULER_HOME/plugins/$plugin" ]; then
+    CP=$CP:"$DOLPHINSCHEDULER_HOME/plugins/$plugin/*"
+  fi
+done
+
+
+$JAVA_HOME/bin/java $JAVA_OPTS \
+  -cp "$ALERT_HOME/conf""$CP" \
   org.apache.dolphinscheduler.alert.AlertServer

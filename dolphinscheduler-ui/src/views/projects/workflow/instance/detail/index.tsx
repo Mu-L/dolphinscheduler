@@ -16,14 +16,14 @@
  */
 
 import { defineComponent, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useThemeStore } from '@/store/theme/theme'
 import { useI18n } from 'vue-i18n'
 import Dag from '../../components/dag'
 import {
-  queryProcessInstanceById,
-  updateProcessInstance
-} from '@/service/modules/process-instances'
+  queryWorkflowInstanceById,
+  updateWorkflowInstance
+} from '@/service/modules/workflow-instances'
 import {
   WorkflowDefinition,
   WorkflowInstance,
@@ -47,7 +47,6 @@ export default defineComponent({
   setup() {
     const theme = useThemeStore()
     const route = useRoute()
-    const router = useRouter()
     const { t } = useI18n()
     const projectCode = Number(route.params.projectCode)
     const id = Number(route.params.id)
@@ -57,9 +56,9 @@ export default defineComponent({
     const dagInstanceRef = ref()
 
     const refresh = () => {
-      queryProcessInstanceById(id, projectCode).then((res: any) => {
+      queryWorkflowInstanceById(id, projectCode).then((res: any) => {
         instance.value = res
-        if (!res.dagData.processDefinition.locations) {
+        if (!res.dagData.workflowDefinition.locations) {
           setTimeout(() => {
             const graph = dagInstanceRef.value
             const { submit } = useGraphAutoLayout({ graph })
@@ -82,26 +81,25 @@ export default defineComponent({
         return {
           prop: p.key,
           value: p.value,
-          direct: 'IN',
-          type: 'VARCHAR'
+          direct: p.direct,
+          type: p.type
         }
       })
 
-      updateProcessInstance(
+      updateWorkflowInstance(
         {
           syncDefine: saveForm.sync,
           globalParams: JSON.stringify(globalParams),
           locations: JSON.stringify(locations),
           taskDefinitionJson: JSON.stringify(taskDefinitions),
           taskRelationJson: JSON.stringify(connects),
-          tenantCode: saveForm.tenantCode,
           timeout: saveForm.timeoutFlag ? saveForm.timeout : 0
         },
         id,
         projectCode
       ).then((ignored: any) => {
         window.$message.success(t('project.dag.success'))
-        router.push({ path: `/projects/${projectCode}/workflow/instances` })
+        window.location.reload()
       })
     }
 

@@ -17,34 +17,25 @@
 
 package org.apache.dolphinscheduler.server.master.registry;
 
-import lombok.NonNull;
 import org.apache.dolphinscheduler.common.lifecycle.ServerLifeCycleManager;
 import org.apache.dolphinscheduler.registry.api.ConnectionListener;
 import org.apache.dolphinscheduler.registry.api.ConnectionState;
-import org.apache.dolphinscheduler.server.master.config.MasterConfig;
-import org.apache.dolphinscheduler.service.registry.RegistryClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.dolphinscheduler.registry.api.RegistryClient;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class MasterConnectionStateListener implements ConnectionListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(MasterConnectionStateListener.class);
-
-    private final MasterConfig masterConfig;
     private final RegistryClient registryClient;
-    private final MasterConnectStrategy masterConnectStrategy;
 
-    public MasterConnectionStateListener(@NonNull MasterConfig masterConfig,
-                                         @NonNull RegistryClient registryClient,
-                                         @NonNull MasterConnectStrategy masterConnectStrategy) {
-        this.masterConfig = masterConfig;
+    public MasterConnectionStateListener(final RegistryClient registryClient) {
         this.registryClient = registryClient;
-        this.masterConnectStrategy = masterConnectStrategy;
     }
 
     @Override
     public void onUpdate(ConnectionState state) {
-        logger.info("Master received a {} event from registry, the current server state is {}", state,
+        log.info("Master received a {} event from registry, the current server state is {}", state,
                 ServerLifeCycleManager.getServerStatus());
         switch (state) {
             case CONNECTED:
@@ -52,12 +43,13 @@ public class MasterConnectionStateListener implements ConnectionListener {
             case SUSPENDED:
                 break;
             case RECONNECTED:
-                masterConnectStrategy.reconnect();
+                log.warn("Master reconnect to registry");
                 break;
             case DISCONNECTED:
-                masterConnectStrategy.disconnect();
+                registryClient.getStoppable().stop("Master disconnected from registry, will stop myself");
                 break;
             default:
+                log.warn("Unknown connection state: {}", state);
         }
     }
 }

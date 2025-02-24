@@ -4,9 +4,9 @@
 
 Spark task type for executing Spark application. When executing the Spark task, the worker will submits a job to the Spark cluster by following commands:
 
-(1) `spark submit` method to submit tasks. See [spark-submit](https://spark.apache.org/docs/3.2.1/submitting-applications.html#launching-applications-with-spark-submit) for more details.
+(1) `spark submit` method to submit tasks. See [spark-submit](https://archive.apache.org/dist/spark/docs/3.2.1/#running-the-examples-and-shell) for more details.
 
-(2) `spark sql` method to submit tasks. See [spark sql](https://spark.apache.org/docs/3.2.1/sql-ref-syntax.html) for more details.
+(2) `spark sql` method to submit tasks. See [spark sql](https://archive.apache.org/dist/spark/docs/3.2.1/api/sql/index.html) for more details.
 
 ## Create Task
 
@@ -15,25 +15,31 @@ Spark task type for executing Spark application. When executing the Spark task, 
 
 ## Task Parameters
 
-- Please refer to [DolphinScheduler Task Parameters Appendix](appendix.md#default-task-parameters) for default parameters.
+[//]: # (TODO: use the commented anchor below once our website template supports this syntax)
+[//]: # (- Please refer to [DolphinScheduler Task Parameters Appendix]&#40;appendix.md#default-task-parameters&#41; `Default Task Parameters` section for default parameters.)
 
-|       **Parameter**        |                                                                  **Description**                                                                  |
-|----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
-| Program type               | Supports Java, Scala, Python, and SQL.                                                                                                            |
-| The class of main function | The **full path** of Main Class, the entry point of the Spark program.                                                                            |
-| Main jar package           | The Spark jar package (upload by Resource Center).                                                                                                |
-| SQL scripts                | SQL statements in .sql files that Spark sql runs.                                                                                                 |
-| Deployment mode            | <ul><li>spark submit supports three modes: yarn-clusetr, yarn-client and local.</li><li>spark sql supports yarn-client and local modes.</li></ul> |
-| Task name                  | Spark task name.                                                                                                                                  |
-| Driver core number         | Set the number of Driver core, which can be set according to the actual production environment.                                                   |
-| Driver memory size         | Set the size of Driver memories, which can be set according to the actual production environment.                                                 |
-| Number of Executor         | Set the number of Executor, which can be set according to the actual production environment.                                                      |
-| Executor memory size       | Set the size of Executor memories, which can be set according to the actual production environment.                                               |
-| Main program parameters    | Set the input parameters of the Spark program and support the substitution of custom parameter variables.                                         |
-| Optional parameters        | Support `--jars`, `--files`,` --archives`, `--conf` format.                                                                                       |
-| Resource                   | Appoint resource files in the `Resource` if parameters refer to them.                                                                             |
-| Custom parameter           | It is a local user-defined parameter for Spark, and will replace the content with `${variable}` in the script.                                    |
-| Predecessor task           | Selecting a predecessor task for the current task, will set the selected predecessor task as upstream of the current task.                        |
+- Please refer to [DolphinScheduler Task Parameters Appendix](appendix.md) `Default Task Parameters` section for default parameters.
+
+|       **Parameter**        |                                                          **Description**                                                           |
+|----------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| Program type               | Supports Java, Scala, Python, and SQL.                                                                                             |
+| The class of main function | The **full path** of Main Class, the entry point of the Spark program.                                                             |
+| Master                     | The The master URL for the cluster.                                                                                                |
+| Main jar package           | The Spark jar package (upload by Resource Center).                                                                                 |
+| SQL scripts                | SQL statements in .sql files that Spark sql runs.                                                                                  |
+| Deployment mode            | <ul><li>spark submit supports three modes: cluster, client and local.</li><li>spark sql supports client and local modes.</li></ul> |
+| Namespace (cluster)        | Select the namespace, submit application to native kubernetes, instead, submit to yarn cluster (default).                          |
+| Task name                  | Spark task name.                                                                                                                   |
+| Driver core number         | Set the number of Driver core, which can be set according to the actual production environment.                                    |
+| Driver memory size         | Set the size of Driver memories, which can be set according to the actual production environment.                                  |
+| Number of Executor         | Set the number of Executor, which can be set according to the actual production environment.                                       |
+| Executor memory size       | Set the size of Executor memories, which can be set according to the actual production environment.                                |
+| Yarn queue                 | Set the yarn queue, use `default` queue by default.                                                                                |
+| Main program parameters    | Set the input parameters of the Spark program and support the substitution of custom parameter variables.                          |
+| Optional parameters        | Set the spark command options, such as `--jars`, `--files`,` --archives`, `--conf`.                                                |
+| Resource                   | Appoint resource files in the `Resource` if parameters refer to them.                                                              |
+| Custom parameter           | It is a local user-defined parameter for Spark, and will replace the content with `${variable}` in the script.                     |
+| Predecessor task           | Selecting a predecessor task for the current task, will set the selected predecessor task as upstream of the current task.         |
 
 ## Task Example
 

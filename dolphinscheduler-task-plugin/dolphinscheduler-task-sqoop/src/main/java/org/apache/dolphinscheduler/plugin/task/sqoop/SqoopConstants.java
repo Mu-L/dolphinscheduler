@@ -21,10 +21,11 @@ public final class SqoopConstants {
 
     private SqoopConstants() {
     }
-
-    //sqoop general param
+    public static final String FORMAT_S_S_S = "%s%s%s";
+    // sqoop general param
     public static final String SQOOP = "sqoop";
     public static final String SQOOP_MR_JOB_NAME = "mapred.job.name";
+    public static final Object SQOOP_EXPORT_RECORDS_PER_STATEMENT = "sqoop.export.records.per.statement";
     public static final String SQOOP_PARALLELISM = "-m";
     public static final String FIELDS_TERMINATED_BY = "--fields-terminated-by";
     public static final String LINES_TERMINATED_BY = "--lines-terminated-by";
@@ -32,8 +33,9 @@ public final class SqoopConstants {
 
     public static final String SPLIT_BY = "--split-by";
 
-    //sqoop db
+    // sqoop db
     public static final String DB_CONNECT = "--connect";
+    public static final String DRIVER = "--driver";
     public static final String DB_USERNAME = "--username";
     public static final String DB_PWD = "--password";
     public static final String TABLE = "--table";
@@ -45,19 +47,18 @@ public final class SqoopConstants {
     public static final String MAP_COLUMN_HIVE = "--map-column-hive";
     public static final String MAP_COLUMN_JAVA = "--map-column-java";
 
-
-    //sqoop hive source
+    // sqoop hive source
     public static final String HCATALOG_DATABASE = "--hcatalog-database";
     public static final String HCATALOG_TABLE = "--hcatalog-table";
     public static final String HCATALOG_PARTITION_KEYS = "--hcatalog-partition-keys";
     public static final String HCATALOG_PARTITION_VALUES = "--hcatalog-partition-values";
 
-    //sqoop hdfs
+    // sqoop hdfs
     public static final String HDFS_EXPORT_DIR = "--export-dir";
     public static final String TARGET_DIR = "--target-dir";
     public static final String COMPRESSION_CODEC = "--compression-codec";
 
-    //sqoop hive
+    // sqoop hive
     public static final String HIVE_IMPORT = "--hive-import";
     public static final String HIVE_DATABASE = "--hive-database";
     public static final String HIVE_TABLE = "--hive-table";
@@ -69,9 +70,16 @@ public final class SqoopConstants {
     public static final String HIVE_PARTITION_KEY = "--hive-partition-key";
     public static final String HIVE_PARTITION_VALUE = "--hive-partition-value";
 
-    //sqoop update model
+    // sqoop update model
     public static final String UPDATE_KEY = "--update-key";
     public static final String UPDATE_MODE = "--update-mode";
 
+    public static final String SQOOP_PASSWORD_REGEX = "(?<=(--password \")).+?(?=\")";
 
+    public static final String MYSQL = "MYSQL";
+    public static final String HIVE = "HIVE";
+    public static final String HDFS = "HDFS";
+    public static final String ORACLE = "ORACLE";
+    public static final String HANA = "HANA";
+    public static final String SQLSERVER = "SQLSERVER";
 }

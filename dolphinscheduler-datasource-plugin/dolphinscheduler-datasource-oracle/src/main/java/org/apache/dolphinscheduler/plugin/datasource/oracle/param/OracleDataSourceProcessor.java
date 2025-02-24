@@ -17,6 +17,9 @@
 
 package org.apache.dolphinscheduler.plugin.datasource.oracle.param;
 
+import org.apache.dolphinscheduler.common.constants.Constants;
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
+import org.apache.dolphinscheduler.plugin.datasource.api.constants.DataSourceConstants;
 import org.apache.dolphinscheduler.plugin.datasource.api.datasource.AbstractDataSourceProcessor;
 import org.apache.dolphinscheduler.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import org.apache.dolphinscheduler.plugin.datasource.api.datasource.DataSourceProcessor;
@@ -25,9 +28,6 @@ import org.apache.dolphinscheduler.spi.datasource.BaseConnectionParam;
 import org.apache.dolphinscheduler.spi.datasource.ConnectionParam;
 import org.apache.dolphinscheduler.spi.enums.DbConnectType;
 import org.apache.dolphinscheduler.spi.enums.DbType;
-import org.apache.dolphinscheduler.spi.utils.Constants;
-import org.apache.dolphinscheduler.spi.utils.JSONUtils;
-import org.apache.dolphinscheduler.spi.utils.StringUtils;
 
 import org.apache.commons.collections4.MapUtils;
 
@@ -35,10 +35,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.dialect.oracle.parser.OracleStatementParser;
+import com.alibaba.druid.sql.parser.SQLParserUtils;
 import com.google.auto.service.AutoService;
 
 @AutoService(DataSourceProcessor.class)
@@ -56,7 +59,8 @@ public class OracleDataSourceProcessor extends AbstractDataSourceProcessor {
 
         oracleDatasourceParamDTO.setDatabase(connectionParams.getDatabase());
         oracleDatasourceParamDTO.setUserName(connectionParams.getUser());
-        oracleDatasourceParamDTO.setOther(parseOther(connectionParams.getOther()));
+        oracleDatasourceParamDTO.setOther(connectionParams.getOther());
+        oracleDatasourceParamDTO.setConnectType(connectionParams.getConnectType());
 
         String hostSeperator = Constants.DOUBLE_SLASH;
         if (DbConnectType.ORACLE_SID.equals(connectionParams.connectType)) {
@@ -77,11 +81,11 @@ public class OracleDataSourceProcessor extends AbstractDataSourceProcessor {
         String jdbcUrl;
         if (DbConnectType.ORACLE_SID.equals(oracleParam.getConnectType())) {
             address = String.format("%s%s:%s",
-                    Constants.JDBC_ORACLE_SID, oracleParam.getHost(), oracleParam.getPort());
+                    DataSourceConstants.JDBC_ORACLE_SID, oracleParam.getHost(), oracleParam.getPort());
             jdbcUrl = address + ":" + oracleParam.getDatabase();
         } else {
             address = String.format("%s%s:%s",
-                    Constants.JDBC_ORACLE_SERVICE_NAME, oracleParam.getHost(), oracleParam.getPort());
+                    DataSourceConstants.JDBC_ORACLE_SERVICE_NAME, oracleParam.getHost(), oracleParam.getPort());
             jdbcUrl = address + "/" + oracleParam.getDatabase();
         }
 
@@ -94,8 +98,7 @@ public class OracleDataSourceProcessor extends AbstractDataSourceProcessor {
         oracleConnectionParam.setConnectType(oracleParam.getConnectType());
         oracleConnectionParam.setDriverClassName(getDatasourceDriver());
         oracleConnectionParam.setValidationQuery(getValidationQuery());
-        oracleConnectionParam.setOther(transformOther(oracleParam.getOther()));
-        oracleConnectionParam.setProps(oracleParam.getOther());
+        oracleConnectionParam.setOther(oracleParam.getOther());
 
         return oracleConnectionParam;
     }
@@ -107,19 +110,20 @@ public class OracleDataSourceProcessor extends AbstractDataSourceProcessor {
 
     @Override
     public String getDatasourceDriver() {
-        return Constants.COM_ORACLE_JDBC_DRIVER;
+        return DataSourceConstants.COM_ORACLE_JDBC_DRIVER;
     }
 
     @Override
     public String getValidationQuery() {
-        return Constants.ORACLE_VALIDATION_QUERY;
+        return DataSourceConstants.ORACLE_VALIDATION_QUERY;
     }
 
     @Override
     public String getJdbcUrl(ConnectionParam connectionParam) {
         OracleConnectionParam oracleConnectionParam = (OracleConnectionParam) connectionParam;
-        if (!StringUtils.isEmpty(oracleConnectionParam.getOther())) {
-            return String.format("%s?%s", oracleConnectionParam.getJdbcUrl(), oracleConnectionParam.getOther());
+        if (MapUtils.isNotEmpty(oracleConnectionParam.getOther())) {
+            return String.format("%s?%s", oracleConnectionParam.getJdbcUrl(),
+                    transformOther(oracleConnectionParam.getOther()));
         }
         return oracleConnectionParam.getJdbcUrl();
     }
@@ -142,24 +146,22 @@ public class OracleDataSourceProcessor extends AbstractDataSourceProcessor {
         return new OracleDataSourceProcessor();
     }
 
+    @Override
+    public List<String> splitAndRemoveComment(String sql) {
+        if (sql.toUpperCase().contains("BEGIN") && sql.toUpperCase().contains("END")) {
+            return new OracleStatementParser(sql).parseStatementList().stream().map(SQLStatement::toString)
+                    .collect(Collectors.toList());
+        }
+        return SQLParserUtils.splitAndRemoveComment(sql, com.alibaba.druid.DbType.oracle);
+    }
+
     private String transformOther(Map<String, String> otherMap) {
         if (MapUtils.isEmpty(otherMap)) {
             return null;
         }
-        List<String> list = new ArrayList<>();
-        otherMap.forEach((key, value) -> list.add(String.format("%s=%s", key, value)));
-        return String.join("&", list);
+        List<String> otherList = new ArrayList<>();
+        otherMap.forEach((key, value) -> otherList.add(String.format("%s=%s", key, value)));
+        return String.join("&", otherList);
     }
 
-    private Map<String, String> parseOther(String other) {
-        if (StringUtils.isEmpty(other)) {
-            return null;
-        }
-        Map<String, String> otherMap = new LinkedHashMap<>();
-        String[] configs = other.split("&");
-        for (String config : configs) {
-            otherMap.put(config.split("=")[0], config.split("=")[1]);
-        }
-        return otherMap;
-    }
 }

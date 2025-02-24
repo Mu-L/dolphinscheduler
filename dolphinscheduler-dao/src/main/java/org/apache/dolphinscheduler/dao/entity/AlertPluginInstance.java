@@ -80,7 +80,8 @@ public class AlertPluginInstance {
         this.instanceName = instanceName;
     }
 
-    public AlertPluginInstance(int id, String pluginInstanceParams, String instanceName, Date updateDate) {
+    public AlertPluginInstance(int id, String pluginInstanceParams, String instanceName,
+                               Date updateDate) {
         this.id = id;
         this.pluginInstanceParams = pluginInstanceParams;
         this.updateTime = updateDate;

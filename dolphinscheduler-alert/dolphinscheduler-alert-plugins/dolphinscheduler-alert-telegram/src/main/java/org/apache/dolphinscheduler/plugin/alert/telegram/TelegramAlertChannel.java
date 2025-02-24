@@ -25,11 +25,12 @@ import org.apache.dolphinscheduler.alert.api.AlertResult;
 import java.util.Map;
 
 public final class TelegramAlertChannel implements AlertChannel {
+
     @Override
     public AlertResult process(AlertInfo info) {
         Map<String, String> alertParams = info.getAlertParams();
         if (alertParams == null || alertParams.isEmpty()) {
-            return new AlertResult("false", "Telegram alert params is empty");
+            return AlertResult.fail("Telegram alert params is empty");
         }
         AlertData data = info.getAlertData();
         return new TelegramSender(alertParams).sendMessage(data);

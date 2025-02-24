@@ -17,111 +17,109 @@
 
 package org.apache.dolphinscheduler.alert;
 
-import org.apache.dolphinscheduler.common.Constants;
+import org.apache.dolphinscheduler.alert.metrics.AlertServerMetrics;
+import org.apache.dolphinscheduler.alert.plugin.AlertPluginManager;
+import org.apache.dolphinscheduler.alert.registry.AlertRegistryClient;
+import org.apache.dolphinscheduler.alert.rpc.AlertRpcServer;
+import org.apache.dolphinscheduler.alert.service.AlertBootstrapService;
+import org.apache.dolphinscheduler.alert.service.AlertHAServer;
+import org.apache.dolphinscheduler.common.CommonConfiguration;
+import org.apache.dolphinscheduler.common.constants.Constants;
 import org.apache.dolphinscheduler.common.lifecycle.ServerLifeCycleManager;
+import org.apache.dolphinscheduler.common.thread.DefaultUncaughtExceptionHandler;
 import org.apache.dolphinscheduler.common.thread.ThreadUtils;
-import org.apache.dolphinscheduler.dao.PluginDao;
-import org.apache.dolphinscheduler.remote.NettyRemotingServer;
-import org.apache.dolphinscheduler.remote.command.CommandType;
-import org.apache.dolphinscheduler.remote.config.NettyServerConfig;
+import org.apache.dolphinscheduler.dao.DaoConfiguration;
+import org.apache.dolphinscheduler.registry.api.RegistryConfiguration;
+import org.apache.dolphinscheduler.registry.api.ha.AbstractServerStatusChangeListener;
 
-import java.io.Closeable;
-
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.event.EventListener;
+import org.springframework.context.annotation.Import;
 
+@Slf4j
+@Import({CommonConfiguration.class,
+        DaoConfiguration.class,
+        RegistryConfiguration.class})
 @SpringBootApplication
-@ComponentScan("org.apache.dolphinscheduler")
-public class AlertServer implements Closeable {
+public class AlertServer {
 
-    private static final Logger logger = LoggerFactory.getLogger(AlertServer.class);
+    @Autowired
+    private AlertRpcServer alertRpcServer;
 
-    private final PluginDao pluginDao;
-    private final AlertSenderService alertSenderService;
-    private final AlertRequestProcessor alertRequestProcessor;
-    private final AlertConfig alertConfig;
-    private NettyRemotingServer nettyRemotingServer;
+    @Autowired
+    private AlertPluginManager alertPluginManager;
 
-    public AlertServer(PluginDao pluginDao,
-                       AlertSenderService alertSenderService,
-                       AlertRequestProcessor alertRequestProcessor,
-                       AlertConfig alertConfig) {
-        this.pluginDao = pluginDao;
-        this.alertSenderService = alertSenderService;
-        this.alertRequestProcessor = alertRequestProcessor;
-        this.alertConfig = alertConfig;
-    }
+    @Autowired
+    private AlertRegistryClient alertRegistryClient;
+
+    @Autowired
+    private AlertHAServer alertHAServer;
+
+    @Autowired
+    private AlertBootstrapService alertBootstrapService;
 
     public static void main(String[] args) {
+        AlertServerMetrics.registerUncachedException(DefaultUncaughtExceptionHandler::getUncaughtExceptionCount);
+        Thread.setDefaultUncaughtExceptionHandler(DefaultUncaughtExceptionHandler.getInstance());
         Thread.currentThread().setName(Constants.THREAD_NAME_ALERT_SERVER);
-        new SpringApplicationBuilder(AlertServer.class).run(args);
+        SpringApplication.run(AlertServer.class, args);
     }
 
-    @EventListener
-    public void run(ApplicationReadyEvent readyEvent) {
-        logger.info("Alert server is staring ...");
+    @PostConstruct
+    public void run() {
+        ServerLifeCycleManager.toRunning();
+        log.info("AlertServer is staring ...");
+        alertPluginManager.start();
+        alertRpcServer.start();
+        alertRegistryClient.start();
 
-        checkTable();
-        startServer();
-        alertSenderService.start();
-        logger.info("Alert server is started ...");
+        alertHAServer.addServerStatusChangeListener(new AbstractServerStatusChangeListener() {
+
+            @Override
+            public void changeToActive() {
+                alertBootstrapService.start();
+            }
+
+            @Override
+            public void changeToStandBy() {
+                close();
+            }
+        });
+
+        alertHAServer.start();
+
+        log.info("AlertServer is started ...");
     }
 
-    @Override
     @PreDestroy
     public void close() {
-        destroy("alert server destroy");
-    }
-
-    /**
-     * gracefully stop
-     *
-     * @param cause stop cause
-     */
-    public void destroy(String cause) {
-
+        String cause = "AlertServer destroy";
         try {
             // set stop signal is true
             // execute only once
             if (!ServerLifeCycleManager.toStopped()) {
-                logger.warn("AlterServer is already stopped");
+                log.warn("AlterServer is already stopped");
                 return;
             }
-
-            logger.info("Alert server is stopping, cause: {}", cause);
-
+            log.info("AlertServer is stopping, cause: {}", cause);
+            try (
+                    final AlertRpcServer ignore = alertRpcServer;
+                    final AlertRegistryClient ignore1 = alertRegistryClient;
+                    final AlertHAServer ignore2 = alertHAServer;
+                    final AlertBootstrapService ignore3 = alertBootstrapService;) {
+            }
             // thread sleep 3 seconds for thread quietly stop
             ThreadUtils.sleep(Constants.SERVER_CLOSE_WAIT_TIME.toMillis());
-
-            // close
-            this.nettyRemotingServer.close();
-            logger.info("Alter server stopped, cause: {}", cause);
+            log.info("AlertServer stopped, cause: {}", cause);
         } catch (Exception e) {
-            logger.error("Alert server stop failed, cause: {}", cause, e);
+            log.error("AlertServer stop failed, cause: {}", cause, e);
         }
-    }
-
-    private void checkTable() {
-        if (!pluginDao.checkPluginDefineTableExist()) {
-            logger.error("Plugin Define Table t_ds_plugin_define Not Exist . Please Create it First !");
-            System.exit(1);
-        }
-    }
-
-    private void startServer() {
-        NettyServerConfig serverConfig = new NettyServerConfig();
-        serverConfig.setListenPort(alertConfig.getPort());
-
-        nettyRemotingServer = new NettyRemotingServer(serverConfig);
-        nettyRemotingServer.registerProcessor(CommandType.ALERT_SEND_REQUEST, alertRequestProcessor);
-        nettyRemotingServer.start();
     }
 
 }

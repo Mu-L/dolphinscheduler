@@ -84,13 +84,83 @@ export function useDatasource(
       disabled: false
     },
     {
-      id: 9,
+      id: 10,
       code: 'REDSHIFT',
       disabled: false
     },
     {
-      id: 10,
+      id: 11,
       code: 'ATHENA',
+      disabled: false
+    },
+    {
+      id: 12,
+      code: 'TRINO',
+      disabled: false
+    },
+    {
+      id: 13,
+      code: 'STARROCKS',
+      disabled: false
+    },
+    {
+      id: 14,
+      code: 'AZURESQL',
+      disabled: false
+    },
+    {
+      id: 15,
+      code: 'DAMENG',
+      disabled: false
+    },
+    {
+      id: 16,
+      code: 'OCEANBASE',
+      disabled: false
+    },
+    {
+      id: 17,
+      code: 'SSH',
+      disabled: true
+    },
+    {
+      id: 18,
+      code: 'KYUUBI',
+      disabled: false
+    },
+    {
+      id: 19,
+      code: 'DATABEND',
+      disabled: false
+    },
+    {
+      id: 21,
+      code: 'VERTICA',
+      disabled: false
+    },
+    {
+      id: 22,
+      code: 'HANA',
+      disabled: false
+    },
+    {
+      id: 23,
+      code: 'DORIS',
+      disabled: false
+    },
+    {
+      id: 24,
+      code: 'ZEPPELIN',
+      disabled: false
+    },
+    {
+      id: 25,
+      code: 'SAGEMAKER',
+      disabled: false
+    },
+    {
+      id: 27,
+      code: 'ALIYUN_SERVERLESS_SPARK',
       disabled: false
     }
   ]

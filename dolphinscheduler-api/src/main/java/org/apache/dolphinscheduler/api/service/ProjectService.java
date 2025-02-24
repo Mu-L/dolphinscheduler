@@ -17,15 +17,14 @@
 
 package org.apache.dolphinscheduler.api.service;
 
+import org.apache.dolphinscheduler.api.exceptions.ServiceException;
 import org.apache.dolphinscheduler.api.utils.Result;
 import org.apache.dolphinscheduler.dao.entity.Project;
 import org.apache.dolphinscheduler.dao.entity.User;
 
+import java.util.List;
 import java.util.Map;
 
-/**
- * project service
- **/
 public interface ProjectService {
 
     /**
@@ -64,9 +63,12 @@ public interface ProjectService {
      * @param perm String
      * @return true if the login user have permission to see the project
      */
+    @Deprecated
     Map<String, Object> checkProjectAndAuth(User loginUser, Project project, long projectCode, String perm);
 
-    void checkProjectAndAuthThrowException(User loginUser, Project project, String permission);
+    void checkProjectAndAuthThrowException(User loginUser, Project project, String permission) throws ServiceException;
+
+    void checkProjectAndAuthThrowException(User loginUser, Long projectCode, String permission) throws ServiceException;
 
     boolean hasProjectAndPerm(User loginUser, Project project, Map<String, Object> result, String perm);
 
@@ -79,7 +81,18 @@ public interface ProjectService {
      * @param permission String
      * @return true if the login user have permission to the project
      */
+    @Deprecated
     boolean hasProjectAndPerm(User loginUser, Project project, Result result, String permission);
+
+    @Deprecated
+    boolean hasProjectAndWritePerm(User loginUser, Project project, Result result);
+
+    @Deprecated
+    boolean hasProjectAndWritePerm(User loginUser, Project project, Map<String, Object> result);
+
+    void checkHasProjectWritePermissionThrowException(User loginUser, long projectCode);
+
+    void checkHasProjectWritePermissionThrowException(User loginUser, Project project);
 
     /**
      * admin can view all projects
@@ -93,6 +106,19 @@ public interface ProjectService {
     Result queryProjectListPaging(User loginUser, Integer pageSize, Integer pageNo, String searchVal);
 
     /**
+     * admin can view all projects
+     *
+     * @param userId user id
+     * @param loginUser login user
+     * @param searchVal search value
+     * @param pageSize page size
+     * @param pageNo page number
+     * @return project list which with the login user's authorized level
+     */
+    Result queryProjectWithAuthorizedLevelListPaging(Integer userId, User loginUser, Integer pageSize, Integer pageNo,
+                                                     String searchVal);
+
+    /**
      * delete project by code
      *
      * @param loginUser login user
@@ -102,16 +128,15 @@ public interface ProjectService {
     Result deleteProject(User loginUser, Long projectCode);
 
     /**
-     * updateProcessInstance project
+     * updateWorkflowInstance project
      *
      * @param loginUser login user
      * @param projectCode project code
      * @param projectName project name
      * @param desc description
-     * @param userName project owner
      * @return update result code
      */
-    Result update(User loginUser, Long projectCode, String projectName, String desc, String userName);
+    Result update(User loginUser, Long projectCode, String projectName, String desc);
 
     /**
      * query unauthorized project
@@ -132,6 +157,13 @@ public interface ProjectService {
     Result queryAuthorizedProject(User loginUser, Integer userId);
 
     /**
+     * query all project with authorized level
+     * @param loginUser login user
+     * @return project list
+     */
+    Result queryProjectWithAuthorizedLevel(User loginUser, Integer userId);
+
+    /**
      * query authorized user
      *
      * @param loginUser     login user
@@ -149,7 +181,7 @@ public interface ProjectService {
     Map<String, Object> queryProjectCreatedByUser(User loginUser);
 
     /**
-     * query all project list that have one or more process definitions.
+     * query all project list that have one or more workflow definitions.
      * @param loginUser
      * @return project list
      */
@@ -180,4 +212,5 @@ public interface ProjectService {
      */
     Result queryAllProjectListForDependent();
 
+    List<Long> getAuthorizedProjectCodes(User loginUser);
 }

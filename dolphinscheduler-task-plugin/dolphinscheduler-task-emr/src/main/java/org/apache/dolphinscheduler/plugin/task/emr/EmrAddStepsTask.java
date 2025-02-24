@@ -20,11 +20,14 @@ package org.apache.dolphinscheduler.plugin.task.emr;
 import org.apache.dolphinscheduler.plugin.task.api.TaskConstants;
 import org.apache.dolphinscheduler.plugin.task.api.TaskException;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
+import org.apache.dolphinscheduler.plugin.task.api.utils.ParameterUtils;
 
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import lombok.extern.slf4j.Slf4j;
 
 import com.amazonaws.SdkBaseException;
 import com.amazonaws.services.elasticmapreduce.model.AddJobFlowStepsRequest;
@@ -45,6 +48,7 @@ import com.google.common.collect.Sets;
  *
  * @since v3.1.0
  */
+@Slf4j
 public class EmrAddStepsTask extends AbstractEmrTask {
 
     private String stepId;
@@ -85,12 +89,12 @@ public class EmrAddStepsTask extends AbstractEmrTask {
             stepStatus = getStepStatus();
 
         } catch (EmrTaskException | SdkBaseException e) {
-            logger.error("emr task submit failed with error", e);
+            log.error("emr task submit failed with error", e);
             throw new TaskException("emr task submit fail", e);
         } finally {
             final int exitStatusCode = calculateExitStatusCode(stepStatus);
             setExitStatusCode(exitStatusCode);
-            logger.info("emr task finished with step status : {}", stepStatus);
+            log.info("emr task finished with step status : {}", stepStatus);
         }
     }
 
@@ -104,14 +108,14 @@ public class EmrAddStepsTask extends AbstractEmrTask {
                 stepStatus = getStepStatus();
             }
         } catch (EmrTaskException | SdkBaseException e) {
-            logger.error("emr task failed with error", e);
+            log.error("emr task failed with error", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new TaskException("Execute emr task failed", e);
         } finally {
             final int exitStatusCode = calculateExitStatusCode(stepStatus);
             setExitStatusCode(exitStatusCode);
-            logger.info("emr task finished with step status : {}", stepStatus);
+            log.info("emr task finished with step status : {}", stepStatus);
         }
     }
 
@@ -120,14 +124,18 @@ public class EmrAddStepsTask extends AbstractEmrTask {
      *
      * @return AddJobFlowStepsRequest
      */
-    private AddJobFlowStepsRequest createAddJobFlowStepsRequest() {
+    protected AddJobFlowStepsRequest createAddJobFlowStepsRequest() {
 
         final AddJobFlowStepsRequest addJobFlowStepsRequest;
+        String jobStepDefineJson = null;
         try {
+            jobStepDefineJson = ParameterUtils.convertParameterPlaceholders(
+                    emrParameters.getStepsDefineJson(),
+                    ParameterUtils.convert(taskExecutionContext.getPrepareParamsMap()));
             addJobFlowStepsRequest =
-                    objectMapper.readValue(emrParameters.getStepsDefineJson(), AddJobFlowStepsRequest.class);
+                    objectMapper.readValue(jobStepDefineJson, AddJobFlowStepsRequest.class);
         } catch (JsonProcessingException e) {
-            throw new EmrTaskException("can not parse AddJobFlowStepsRequest from json", e);
+            throw new EmrTaskException("can not parse AddJobFlowStepsRequest from json: " + jobStepDefineJson, e);
         }
 
         // When a single task definition is associated with multiple steps, the state tracking will have high
@@ -172,14 +180,14 @@ public class EmrAddStepsTask extends AbstractEmrTask {
             throw new EmrTaskException("fetch step status failed");
         }
         StepStatus stepStatus = result.getStep().getStatus();
-        logger.info("emr step [clusterId:{}, stepId:{}] running with status:{}", clusterId, stepId, stepStatus);
+        log.info("emr step [clusterId:{}, stepId:{}] running with status:{}", clusterId, stepId, stepStatus);
         return stepStatus;
 
     }
 
     @Override
     public void cancelApplication() throws TaskException {
-        logger.info("trying cancel emr step, taskId:{}, clusterId:{}, stepId:{}",
+        log.info("trying cancel emr step, taskId:{}, clusterId:{}, stepId:{}",
                 this.taskExecutionContext.getTaskInstanceId(), clusterId, stepId);
         CancelStepsRequest cancelStepsRequest = new CancelStepsRequest().withClusterId(clusterId).withStepIds(stepId);
         CancelStepsResult cancelStepsResult = emrClient.cancelSteps(cancelStepsRequest);
@@ -198,7 +206,7 @@ public class EmrAddStepsTask extends AbstractEmrTask {
             throw new EmrTaskException("cancel emr step failed, message:" + cancelEmrStepInfo.getReason());
         }
 
-        logger.info("the result of cancel emr step is:{}", cancelStepsResult);
+        log.info("the result of cancel emr step is:{}", cancelStepsResult);
     }
 
 }

@@ -17,23 +17,22 @@
 
 package org.apache.dolphinscheduler.plugin.task.api.model;
 
-import lombok.Data;
 import org.apache.dolphinscheduler.plugin.task.api.enums.DependResult;
-import org.apache.dolphinscheduler.plugin.task.api.enums.TaskExecutionStatus;
+import org.apache.dolphinscheduler.plugin.task.api.enums.DependentType;
 
-/**
- * dependent item
- */
+import lombok.Data;
+
 @Data
 public class DependentItem {
 
+    private DependentType dependentType;
     private long projectCode;
     private long definitionCode;
     private long depTaskCode;
     private String cycle;
     private String dateValue;
     private DependResult dependResult;
-    private TaskExecutionStatus status;
+    private Boolean parameterPassing = false;
 
     public String getKey() {
         return String.format("%d-%d-%s-%s",
@@ -41,6 +40,18 @@ public class DependentItem {
                 getDepTaskCode(),
                 getCycle(),
                 getDateValue());
+    }
+
+    public DependentItem fromKey(String key) {
+        String[] parts = key.split("-");
+        if (parts.length != 4) {
+            throw new IllegalArgumentException("Invalid key format");
+        }
+        setDefinitionCode(Long.parseLong(parts[0]));
+        setDepTaskCode(Long.parseLong(parts[1]));
+        setCycle(parts[2]);
+        setDateValue(parts[3]);
+        return this;
     }
 
 }

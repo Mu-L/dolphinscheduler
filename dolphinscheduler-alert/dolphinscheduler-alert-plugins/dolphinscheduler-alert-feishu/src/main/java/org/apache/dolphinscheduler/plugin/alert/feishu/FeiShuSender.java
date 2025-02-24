@@ -19,9 +19,10 @@ package org.apache.dolphinscheduler.plugin.alert.feishu;
 
 import org.apache.dolphinscheduler.alert.api.AlertData;
 import org.apache.dolphinscheduler.alert.api.AlertResult;
-import org.apache.dolphinscheduler.spi.utils.JSONUtils;
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
 
 import org.apache.commons.codec.binary.StringUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -30,18 +31,23 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@Slf4j
 public final class FeiShuSender {
-    private static final Logger logger = LoggerFactory.getLogger(FeiShuSender.class);
+
     private final String url;
     private final Boolean enableProxy;
 
@@ -78,27 +84,27 @@ public final class FeiShuSender {
 
     public static AlertResult checkSendFeiShuSendMsgResult(String result) {
         AlertResult alertResult = new AlertResult();
-        alertResult.setStatus("false");
+        alertResult.setSuccess(false);
 
-        if (org.apache.dolphinscheduler.spi.utils.StringUtils.isBlank(result)) {
-            alertResult.setMessage("send fei shu msg error");
-            logger.info("send fei shu msg error,fei shu server resp is null");
+        if (org.apache.commons.lang3.StringUtils.isBlank(result)) {
+            alertResult.setMessage("send feishu msg error: feishu server resp is blank.");
+            log.info("send feishu msg error: feishu server resp is blank.");
             return alertResult;
         }
         FeiShuSendMsgResponse sendMsgResponse = JSONUtils.parseObject(result, FeiShuSendMsgResponse.class);
 
         if (null == sendMsgResponse) {
-            alertResult.setMessage("send fei shu msg fail");
-            logger.info("send fei shu msg error,resp error");
+            alertResult.setMessage("send feishu msg error: feishu server resp parse error is null.");
+            log.info("send feishu msg error: feishu server resp parse error is null.");
             return alertResult;
         }
-        if (sendMsgResponse.statusCode == 0) {
-            alertResult.setStatus("true");
-            alertResult.setMessage("send fei shu msg success");
+        if (sendMsgResponse.code == 0) {
+            alertResult.setSuccess(true);
+            alertResult.setMessage("send feishu msg success.");
             return alertResult;
         }
-        alertResult.setMessage(String.format("alert send fei shu msg error : %s", sendMsgResponse.getStatusMessage()));
-        logger.info("alert send fei shu msg error : {} ,Extra : {} ", sendMsgResponse.getStatusMessage(), sendMsgResponse.getExtra());
+        alertResult.setMessage(String.format("alert send feishu msg error: %s", sendMsgResponse.getMsg()));
+        log.info("alert send feishu msg error: {}", sendMsgResponse);
         return alertResult;
     }
 
@@ -106,7 +112,7 @@ public final class FeiShuSender {
         if (alertData.getContent() != null) {
 
             List<Map> list = JSONUtils.toList(alertData.getContent(), Map.class);
-            if (list.isEmpty()) {
+            if (CollectionUtils.isEmpty(list)) {
                 return alertData.getTitle() + alertData.getContent();
             }
 
@@ -131,10 +137,10 @@ public final class FeiShuSender {
             String resp = sendMsg(alertData);
             return checkSendFeiShuSendMsgResult(resp);
         } catch (Exception e) {
-            logger.info("send fei shu alert msg  exception : {}", e.getMessage());
+            log.error("send feishu alert failed:", e);
             alertResult = new AlertResult();
-            alertResult.setStatus("false");
-            alertResult.setMessage("send fei shu alert fail.");
+            alertResult.setSuccess(false);
+            alertResult.setMessage("send feishu alert fail.");
         }
         return alertResult;
     }
@@ -154,101 +160,35 @@ public final class FeiShuSender {
 
             int statusCode = response.getStatusLine().getStatusCode();
             if (statusCode != HttpStatus.SC_OK) {
-                logger.error("send feishu message error, return http status code: {} ", statusCode);
+                log.error("send feishu message error, return http status code: {} ", statusCode);
             }
             String resp;
             try {
                 HttpEntity entity = response.getEntity();
-                resp = EntityUtils.toString(entity, "utf-8");
+                resp = EntityUtils.toString(entity, StandardCharsets.UTF_8);
                 EntityUtils.consume(entity);
             } finally {
                 response.close();
             }
-            logger.info("Fei Shu send title :{} ,content :{}, resp: {}", alertData.getTitle(), alertData.getContent(), resp);
+            log.info("feishu send title: {}, content: {}, resp: {}", alertData.getTitle(), alertData.getContent(),
+                    resp);
             return resp;
         } finally {
             httpClient.close();
         }
     }
-
+    @AllArgsConstructor
+    @Builder
+    @Data
+    @NoArgsConstructor
     static final class FeiShuSendMsgResponse {
-        @JsonProperty("Extra")
-        private String extra;
-        @JsonProperty("StatusCode")
-        private Integer statusCode;
-        @JsonProperty("StatusMessage")
-        private String statusMessage;
 
-        public FeiShuSendMsgResponse() {
-        }
+        @JsonProperty("data")
+        private Object data;
+        @JsonProperty("code")
+        private Integer code;
+        @JsonProperty("msg")
+        private String msg;
 
-        public String getExtra() {
-            return this.extra;
-        }
-
-        @JsonProperty("Extra")
-        public void setExtra(String extra) {
-            this.extra = extra;
-        }
-
-        public Integer getStatusCode() {
-            return this.statusCode;
-        }
-
-        @JsonProperty("StatusCode")
-        public void setStatusCode(Integer statusCode) {
-            this.statusCode = statusCode;
-        }
-
-        public String getStatusMessage() {
-            return this.statusMessage;
-        }
-
-        @JsonProperty("StatusMessage")
-        public void setStatusMessage(String statusMessage) {
-            this.statusMessage = statusMessage;
-        }
-
-        public boolean equals(final Object o) {
-            if (o == this) {
-                return true;
-            }
-            if (!(o instanceof FeiShuSendMsgResponse)) {
-                return false;
-            }
-            final FeiShuSendMsgResponse other = (FeiShuSendMsgResponse) o;
-            final Object this$extra = this.getExtra();
-            final Object other$extra = other.getExtra();
-            if (this$extra == null ? other$extra != null : !this$extra.equals(other$extra)) {
-                return false;
-            }
-            final Object this$statusCode = this.getStatusCode();
-            final Object other$statusCode = other.getStatusCode();
-            if (this$statusCode == null ? other$statusCode != null : !this$statusCode.equals(other$statusCode)) {
-                return false;
-            }
-            final Object this$statusMessage = this.getStatusMessage();
-            final Object other$statusMessage = other.getStatusMessage();
-            if (this$statusMessage == null ? other$statusMessage != null : !this$statusMessage.equals(other$statusMessage)) {
-                return false;
-            }
-            return true;
-        }
-
-        public int hashCode() {
-            final int PRIME = 59;
-            int result = 1;
-            final Object $extra = this.getExtra();
-            result = result * PRIME + ($extra == null ? 43 : $extra.hashCode());
-            final Object $statusCode = this.getStatusCode();
-            result = result * PRIME + ($statusCode == null ? 43 : $statusCode.hashCode());
-            final Object $statusMessage = this.getStatusMessage();
-            result = result * PRIME + ($statusMessage == null ? 43 : $statusMessage.hashCode());
-            return result;
-        }
-
-        public String toString() {
-            return "FeiShuSender.FeiShuSendMsgResponse(extra=" + this.getExtra() + ", statusCode=" + this.getStatusCode() + ", statusMessage=" + this.getStatusMessage() + ")";
-        }
     }
 }

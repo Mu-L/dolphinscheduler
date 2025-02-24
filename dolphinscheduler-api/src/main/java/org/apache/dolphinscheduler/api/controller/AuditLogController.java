@@ -19,16 +19,17 @@ package org.apache.dolphinscheduler.api.controller;
 
 import static org.apache.dolphinscheduler.api.enums.Status.QUERY_AUDIT_LOG_LIST_PAGING;
 
-import org.apache.dolphinscheduler.api.aspect.AccessLogAnnotation;
+import org.apache.dolphinscheduler.api.dto.AuditDto;
+import org.apache.dolphinscheduler.api.dto.auditLog.AuditModelTypeDto;
+import org.apache.dolphinscheduler.api.dto.auditLog.AuditOperationTypeDto;
 import org.apache.dolphinscheduler.api.exceptions.ApiException;
 import org.apache.dolphinscheduler.api.service.AuditService;
+import org.apache.dolphinscheduler.api.utils.PageInfo;
 import org.apache.dolphinscheduler.api.utils.Result;
-import org.apache.dolphinscheduler.common.Constants;
-import org.apache.dolphinscheduler.common.enums.AuditOperationType;
-import org.apache.dolphinscheduler.common.enums.AuditResourceType;
+import org.apache.dolphinscheduler.common.constants.Constants;
 import org.apache.dolphinscheduler.dao.entity.User;
 
-import springfox.documentation.annotations.ApiIgnore;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -39,12 +40,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiImplicitParams;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Api(tags = "AUDIT_LOG_TAG")
+@Tag(name = "AUDIT_LOG_TAG")
 @RestController
 @RequestMapping("projects/audit")
 public class AuditLogController extends BaseController {
@@ -57,42 +59,74 @@ public class AuditLogController extends BaseController {
      *
      * @param loginUser         login user
      * @param pageNo            page number
-     * @param resourceType     resource type
-     * @param operationType     operation type
+     * @param pageSize          page size
+     * @param modelTypes        model types
+     * @param operationTypes    operation types
+     * @param userName          user name
+     * @param modelName         model name
      * @param startDate         start time
      * @param endDate           end time
-     * @param userName          user name
-     * @param pageSize          page size
      * @return      audit log content
      */
-    @ApiOperation(value = "queryAuditLogListPaging", notes = "QUERY_AUDIT_LOG")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "startDate", value = "START_DATE", dataTypeClass = String.class),
-            @ApiImplicitParam(name = "endDate", value = "END_DATE", dataTypeClass = String.class),
-            @ApiImplicitParam(name = "resourceType", value = "RESOURCE_TYPE", dataTypeClass = AuditResourceType.class),
-            @ApiImplicitParam(name = "operationType", value = "OPERATION_TYPE", dataTypeClass = AuditOperationType.class),
-            @ApiImplicitParam(name = "userName", value = "USER_NAME", dataTypeClass = String.class),
-            @ApiImplicitParam(name = "pageNo", value = "PAGE_NO", required = true, dataTypeClass = int.class, example = "1"),
-            @ApiImplicitParam(name = "pageSize", value = "PAGE_SIZE", required = true, dataTypeClass = int.class, example = "20")
+    @Operation(summary = "queryAuditLogListPaging", description = "QUERY_AUDIT_LOG")
+    @Parameters({
+            @Parameter(name = "startDate", description = "START_DATE", schema = @Schema(implementation = String.class)),
+            @Parameter(name = "endDate", description = "END_DATE", schema = @Schema(implementation = String.class)),
+            @Parameter(name = "objectTypes", description = "MODEL_TYPES", schema = @Schema(implementation = String.class)),
+            @Parameter(name = "operationTypes", description = "OPERATION_TYPES", schema = @Schema(implementation = String.class)),
+            @Parameter(name = "userName", description = "USER_NAME", schema = @Schema(implementation = String.class)),
+            @Parameter(name = "objectName", description = "MODEL_NAME", schema = @Schema(implementation = String.class)),
+            @Parameter(name = "pageNo", description = "PAGE_NO", required = true, schema = @Schema(implementation = int.class, example = "1")),
+            @Parameter(name = "pageSize", description = "PAGE_SIZE", required = true, schema = @Schema(implementation = int.class, example = "20"))
     })
     @GetMapping(value = "/audit-log-list")
     @ResponseStatus(HttpStatus.OK)
     @ApiException(QUERY_AUDIT_LOG_LIST_PAGING)
-    @AccessLogAnnotation(ignoreRequestArgs = "loginUser")
-    public Result queryAuditLogListPaging(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                          @RequestParam("pageNo") Integer pageNo,
-                                          @RequestParam("pageSize") Integer pageSize,
-                                          @RequestParam(value = "resourceType", required = false) AuditResourceType resourceType,
-                                          @RequestParam(value = "operationType", required = false) AuditOperationType operationType,
-                                          @RequestParam(value = "startDate", required = false) String startDate,
-                                          @RequestParam(value = "endDate", required = false) String endDate,
-                                          @RequestParam(value = "userName", required = false) String userName) {
-        Result result = checkPageParams(pageNo, pageSize);
-        if (!result.checkResult()) {
-            return result;
-        }
-        result = auditService.queryLogListPaging(loginUser, resourceType, operationType, startDate, endDate, userName,
-                pageNo, pageSize);
-        return result;
+    public Result<PageInfo<AuditDto>> queryAuditLogListPaging(@Parameter(hidden = true) @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                              @RequestParam("pageNo") Integer pageNo,
+                                                              @RequestParam("pageSize") Integer pageSize,
+                                                              @RequestParam(value = "modelTypes", required = false) String modelTypes,
+                                                              @RequestParam(value = "operationTypes", required = false) String operationTypes,
+                                                              @RequestParam(value = "startDate", required = false) String startDate,
+                                                              @RequestParam(value = "endDate", required = false) String endDate,
+                                                              @RequestParam(value = "userName", required = false) String userName,
+                                                              @RequestParam(value = "modelName", required = false) String modelName) {
+        checkPageParams(pageNo, pageSize);
+        PageInfo<AuditDto> auditDtoPageInfo = auditService.queryLogListPaging(
+                modelTypes,
+                operationTypes,
+                startDate,
+                endDate,
+                userName,
+                modelName,
+                pageNo,
+                pageSize);
+        return Result.success(auditDtoPageInfo);
+    }
+
+    /**
+     * query audit log operation type list
+     *
+     * @return object type list
+     */
+    @Operation(summary = "queryAuditOperationTypeList", description = "QUERY_AUDIT_OPERATION_TYPE_LIST")
+    @GetMapping(value = "/audit-log-operation-type")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_AUDIT_LOG_LIST_PAGING)
+    public Result<List<AuditOperationTypeDto>> queryAuditOperationTypeList() {
+        return Result.success(AuditOperationTypeDto.getOperationTypeDtoList());
+    }
+
+    /**
+     * query audit log model type list
+     *
+     * @return model type list
+     */
+    @Operation(summary = "queryAuditModelTypeList", description = "QUERY_AUDIT_MODEL_TYPE_LIST")
+    @GetMapping(value = "/audit-log-model-type")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_AUDIT_LOG_LIST_PAGING)
+    public Result<List<AuditModelTypeDto>> queryAuditModelTypeList() {
+        return Result.success(AuditModelTypeDto.getModelTypeDtoList());
     }
 }

@@ -18,10 +18,8 @@
 import type { Node, Edge } from '@antv/x6'
 import { X6_NODE_NAME, X6_EDGE_NAME } from './dag-config'
 import utils from '@/utils'
-import {
-  TASK_TYPES_MAP,
-  TaskType
-} from '@/views/projects/task/constants/task-type'
+import { TaskType } from '@/store/project/types'
+import { TASK_TYPES_MAP } from '@/store/project/task-type'
 import { WorkflowDefinition, Coordinate } from './types'
 
 export function useCustomCellBuilder() {
@@ -96,7 +94,7 @@ export function useCustomCellBuilder() {
           // Use href instead of xlink:href, you may lose the icon when downloadPNG
           'xlink:href': `${
             import.meta.env.BASE_URL
-          }images/task-icons/${(type !== 'FLINK_STREAM'
+          }images/task-icons/${(type !== ('FLINK_STREAM' as TaskType)
             ? type
             : 'FLINK'
           ).toLocaleLowerCase()}.png`
@@ -105,7 +103,7 @@ export function useCustomCellBuilder() {
           text: truncation
         },
         rect: {
-          fill: flag === 'NO' ? '#f3f3f5' : '#ffffff'
+          fill: flag === 'NO' ? 'var(--custom-disable-bg)' : '#ffffff'
         }
       }
     }
@@ -121,9 +119,9 @@ export function useCustomCellBuilder() {
     const edges: Edge.Metadata[] = []
 
     const locations =
-      parseLocationStr(definition.processDefinition.locations) || []
+      parseLocationStr(definition.workflowDefinition.locations) || []
     const tasks = definition.taskDefinitionList
-    const connects = definition.processTaskRelationList
+    const connects = definition.workflowTaskRelationList
     const taskTypeMap = {} as { [key in string]: TaskType }
 
     tasks.forEach((task) => {

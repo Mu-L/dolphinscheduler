@@ -19,30 +19,31 @@ package org.apache.dolphinscheduler.api.python;
 
 import org.apache.dolphinscheduler.api.service.ResourcesService;
 import org.apache.dolphinscheduler.common.utils.CodeGenerateUtils;
-import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
 import org.apache.dolphinscheduler.dao.entity.Project;
-import org.apache.dolphinscheduler.dao.entity.Resource;
 import org.apache.dolphinscheduler.dao.entity.TaskDefinition;
 import org.apache.dolphinscheduler.dao.entity.User;
-import org.apache.dolphinscheduler.dao.mapper.ProcessDefinitionMapper;
+import org.apache.dolphinscheduler.dao.entity.WorkflowDefinition;
 import org.apache.dolphinscheduler.dao.mapper.ProjectMapper;
 import org.apache.dolphinscheduler.dao.mapper.TaskDefinitionMapper;
+import org.apache.dolphinscheduler.dao.mapper.WorkflowDefinitionMapper;
+import org.apache.dolphinscheduler.plugin.storage.api.StorageEntity;
 import org.apache.dolphinscheduler.spi.enums.ResourceType;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Date;
 import java.util.Map;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 /**
  * python gate test
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class PythonGatewayTest {
 
     @InjectMocks
@@ -52,7 +53,7 @@ public class PythonGatewayTest {
     private ProjectMapper projectMapper;
 
     @Mock
-    private ProcessDefinitionMapper processDefinitionMapper;
+    private WorkflowDefinitionMapper workflowDefinitionMapper;
 
     @Mock
     private TaskDefinitionMapper taskDefinitionMapper;
@@ -65,14 +66,17 @@ public class PythonGatewayTest {
         Project project = getTestProject();
         Mockito.when(projectMapper.queryByName(project.getName())).thenReturn(project);
 
-        ProcessDefinition processDefinition = getTestProcessDefinition();
-        Mockito.when(processDefinitionMapper.queryByDefineName(project.getCode(), processDefinition.getName())).thenReturn(processDefinition);
+        WorkflowDefinition workflowDefinition = getTestProcessDefinition();
+        Mockito.when(workflowDefinitionMapper.queryByDefineName(project.getCode(), workflowDefinition.getName()))
+                .thenReturn(workflowDefinition);
 
         TaskDefinition taskDefinition = getTestTaskDefinition();
-        Mockito.when(taskDefinitionMapper.queryByName(project.getCode(), processDefinition.getCode(), taskDefinition.getName())).thenReturn(taskDefinition);
+        Mockito.when(taskDefinitionMapper.queryByName(project.getCode(), workflowDefinition.getCode(),
+                taskDefinition.getName())).thenReturn(taskDefinition);
 
-        Map<String, Long> result = pythonGateway.getCodeAndVersion(project.getName(), processDefinition.getName(), taskDefinition.getName());
-        Assert.assertEquals(result.get("code").longValue(), taskDefinition.getCode());
+        Map<String, Long> result = pythonGateway.getCodeAndVersion(project.getName(), workflowDefinition.getName(),
+                taskDefinition.getName());
+        Assertions.assertEquals(result.get("code").longValue(), taskDefinition.getCode());
     }
 
     @Test
@@ -80,52 +84,35 @@ public class PythonGatewayTest {
         Project project = getTestProject();
         Mockito.when(projectMapper.queryByName(project.getName())).thenReturn(project);
 
-        ProcessDefinition processDefinition = getTestProcessDefinition();
-        Mockito.when(processDefinitionMapper.queryByDefineName(project.getCode(), processDefinition.getName())).thenReturn(processDefinition);
+        WorkflowDefinition workflowDefinition = getTestProcessDefinition();
+        Mockito.when(workflowDefinitionMapper.queryByDefineName(project.getCode(), workflowDefinition.getName()))
+                .thenReturn(workflowDefinition);
 
         TaskDefinition taskDefinition = getTestTaskDefinition();
-        Mockito.when(taskDefinitionMapper.queryByName(project.getCode(), processDefinition.getCode(), taskDefinition.getName())).thenReturn(taskDefinition);
+        Mockito.when(taskDefinitionMapper.queryByName(project.getCode(), workflowDefinition.getCode(),
+                taskDefinition.getName())).thenReturn(taskDefinition);
 
-        Map<String, Object> result = pythonGateway.getDependentInfo(project.getName(), processDefinition.getName(), taskDefinition.getName());
-        Assert.assertEquals((long) result.get("taskDefinitionCode"), taskDefinition.getCode());
+        Map<String, Object> result = pythonGateway.getDependentInfo(project.getName(), workflowDefinition.getName(),
+                taskDefinition.getName());
+        Assertions.assertEquals((long) result.get("taskDefinitionCode"), taskDefinition.getCode());
     }
 
     @Test
-    public void testCreateResource() {
+    public void testQueryResourcesFileInfo() throws Exception {
         User user = getTestUser();
-        String resourceDir = "/dir1/dir2/";
-        String resourceName = "test";
-        String resourceSuffix = "py";
-        String desc = "desc";
-        String content = "content";
-        String resourceFullName = resourceDir + resourceName + "." + resourceSuffix;
+        StorageEntity storageEntity = getTestResource();
 
-        int resourceId = 3;
-
-        Mockito.when(resourcesService.createOrUpdateResource(user.getUserName(), resourceFullName, desc, content))
-                .thenReturn(resourceId);
-
-        int id = pythonGateway.createOrUpdateResource(
-                user.getUserName(), resourceFullName, desc, content);
-        Assert.assertEquals(id, resourceId);
+        Mockito.when(resourcesService.queryFileStatus(user.getUserName(), storageEntity.getFullName()))
+                .thenReturn(storageEntity);
+        StorageEntity result = pythonGateway.queryResourcesFileInfo(user.getUserName(), storageEntity.getFullName());
+        Assertions.assertEquals(result.getFullName(), storageEntity.getFullName());
     }
 
-
-    @Test
-    public void testQueryResourcesFileInfo() {
-        User user = getTestUser();
-        Resource resource = getTestResource();
-        Mockito.when(resourcesService.queryResourcesFileInfo(user.getUserName(), resource.getFullName())).thenReturn(resource);
-        Resource result = pythonGateway.queryResourcesFileInfo(user.getUserName(), resource.getFullName());
-        Assert.assertEquals(result.getId(), resource.getId());
-    }
-
-    private Resource getTestResource() {
-        Resource resource = new Resource();
-        resource.setId(1);
-        resource.setType(ResourceType.FILE);
-        resource.setFullName("/dev/test.py");
-        return resource;
+    private StorageEntity getTestResource() {
+        StorageEntity storageEntity = new StorageEntity();
+        storageEntity.setType(ResourceType.FILE);
+        storageEntity.setFullName("/dev/test.py");
+        return storageEntity;
     }
 
     private User getTestUser() {
@@ -145,15 +132,15 @@ public class PythonGatewayTest {
         return project;
     }
 
-    private ProcessDefinition getTestProcessDefinition() {
-        ProcessDefinition processDefinition = new ProcessDefinition();
-        processDefinition.setCode(1L);
-        processDefinition.setName("ut-process-definition");
-        processDefinition.setProjectCode(1L);
-        processDefinition.setUserId(111);
-        processDefinition.setUpdateTime(new Date());
-        processDefinition.setCreateTime(new Date());
-        return processDefinition;
+    private WorkflowDefinition getTestProcessDefinition() {
+        WorkflowDefinition workflowDefinition = new WorkflowDefinition();
+        workflowDefinition.setCode(1L);
+        workflowDefinition.setName("ut-process-definition");
+        workflowDefinition.setProjectCode(1L);
+        workflowDefinition.setUserId(111);
+        workflowDefinition.setUpdateTime(new Date());
+        workflowDefinition.setCreateTime(new Date());
+        return workflowDefinition;
     }
 
     private TaskDefinition getTestTaskDefinition() {

@@ -91,34 +91,4 @@ public class Project {
     @TableField(exist = false)
     private int defCount;
 
-    /**
-     * process instance running count
-     */
-    @TableField(exist = false)
-    private int instRunningCount;
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        Project project = (Project) o;
-
-        if (id != project.id) {
-            return false;
-        }
-        return name.equals(project.name);
-
-    }
-
-    @Override
-    public int hashCode() {
-        int result = id;
-        result = 31 * result + name.hashCode();
-        return result;
-    }
 }

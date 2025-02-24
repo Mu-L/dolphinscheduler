@@ -16,9 +16,9 @@
  */
 
 import crontab from '@/locales/zh_CN/crontab'
-import data_quality from '@/locales/zh_CN/data-quality'
 import datasource from '@/locales/zh_CN/datasource'
 import home from '@/locales/zh_CN/home'
+import input_search from '@/locales/zh_CN/input-search'
 import login from '@/locales/zh_CN/login'
 import menu from '@/locales/zh_CN/menu'
 import modal from '@/locales/zh_CN/modal'
@@ -30,6 +30,8 @@ import resource from '@/locales/zh_CN/resource'
 import security from '@/locales/zh_CN/security'
 import theme from '@/locales/zh_CN/theme'
 import user_dropdown from '@/locales/zh_CN/user-dropdown'
+import ui_setting from '@/locales/zh_CN/ui_setting'
+import about from '@/locales/zh_CN/about'
 
 export default {
   login,
@@ -39,12 +41,14 @@ export default {
   menu,
   home,
   password,
+  about,
   profile,
   monitor,
   resource,
   project,
   security,
   datasource,
-  data_quality,
-  crontab
+  crontab,
+  ui_setting,
+  input_search
 }

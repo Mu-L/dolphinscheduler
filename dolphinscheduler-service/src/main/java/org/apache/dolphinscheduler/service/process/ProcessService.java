@@ -20,203 +20,75 @@ package org.apache.dolphinscheduler.service.process;
 import org.apache.dolphinscheduler.common.enums.AuthorizationType;
 import org.apache.dolphinscheduler.common.enums.TaskGroupQueueStatus;
 import org.apache.dolphinscheduler.common.graph.DAG;
-import org.apache.dolphinscheduler.common.model.TaskNode;
 import org.apache.dolphinscheduler.common.model.TaskNodeRelation;
 import org.apache.dolphinscheduler.common.utils.CodeGenerateUtils;
 import org.apache.dolphinscheduler.dao.entity.Command;
 import org.apache.dolphinscheduler.dao.entity.DagData;
 import org.apache.dolphinscheduler.dao.entity.DataSource;
-import org.apache.dolphinscheduler.dao.entity.DependentProcessDefinition;
-import org.apache.dolphinscheduler.dao.entity.DqComparisonType;
-import org.apache.dolphinscheduler.dao.entity.DqExecuteResult;
-import org.apache.dolphinscheduler.dao.entity.DqRule;
-import org.apache.dolphinscheduler.dao.entity.DqRuleExecuteSql;
-import org.apache.dolphinscheduler.dao.entity.DqRuleInputEntry;
-import org.apache.dolphinscheduler.dao.entity.Environment;
-import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
-import org.apache.dolphinscheduler.dao.entity.ProcessDefinitionLog;
-import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
-import org.apache.dolphinscheduler.dao.entity.ProcessInstanceMap;
-import org.apache.dolphinscheduler.dao.entity.ProcessTaskRelation;
-import org.apache.dolphinscheduler.dao.entity.ProcessTaskRelationLog;
-import org.apache.dolphinscheduler.dao.entity.Project;
-import org.apache.dolphinscheduler.dao.entity.ProjectUser;
-import org.apache.dolphinscheduler.dao.entity.Resource;
 import org.apache.dolphinscheduler.dao.entity.Schedule;
 import org.apache.dolphinscheduler.dao.entity.TaskDefinition;
 import org.apache.dolphinscheduler.dao.entity.TaskDefinitionLog;
 import org.apache.dolphinscheduler.dao.entity.TaskGroupQueue;
 import org.apache.dolphinscheduler.dao.entity.TaskInstance;
-import org.apache.dolphinscheduler.dao.entity.Tenant;
-import org.apache.dolphinscheduler.dao.entity.UdfFunc;
 import org.apache.dolphinscheduler.dao.entity.User;
-import org.apache.dolphinscheduler.plugin.task.api.enums.TaskExecutionStatus;
-import org.apache.dolphinscheduler.plugin.task.api.model.DateInterval;
+import org.apache.dolphinscheduler.dao.entity.WorkflowDefinition;
+import org.apache.dolphinscheduler.dao.entity.WorkflowDefinitionLog;
+import org.apache.dolphinscheduler.dao.entity.WorkflowInstance;
+import org.apache.dolphinscheduler.dao.entity.WorkflowTaskRelation;
+import org.apache.dolphinscheduler.dao.entity.WorkflowTaskRelationLog;
 import org.apache.dolphinscheduler.service.exceptions.CronParseException;
-import org.apache.dolphinscheduler.spi.enums.ResourceType;
+import org.apache.dolphinscheduler.service.model.TaskNode;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.transaction.annotation.Transactional;
-
 public interface ProcessService {
 
-    @Transactional
-    ProcessInstance handleCommand(String host,
-                                  Command command) throws CronParseException, CodeGenerateUtils.CodeGenerateException;
+    WorkflowInstance constructWorkflowInstance(Command command,
+                                               String host) throws CronParseException, CodeGenerateUtils.CodeGenerateException;
 
-    void moveToErrorCommand(Command command, String message);
+    Optional<WorkflowInstance> findWorkflowInstanceDetailById(int workflowInstanceId);
 
-    int createCommand(Command command);
+    WorkflowInstance findWorkflowInstanceById(int workflowInstanceId);
 
-    List<Command> findCommandPage(int pageSize, int pageNumber);
+    WorkflowDefinition findWorkflowDefinition(Long workflowDefinitionCode, int workflowDefinitionVersion);
 
-    List<Command> findCommandPageBySlot(int pageSize, int pageNumber, int masterCount, int thisMasterSlot);
+    WorkflowDefinition findWorkflowDefinitionByCode(Long workflowDefinitionCode);
 
-    boolean verifyIsNeedCreateCommand(Command command);
+    int deleteWorkflowInstanceById(int workflowInstanceId);
 
-    Optional<ProcessInstance> findProcessInstanceDetailById(int processId);
+    int deleteAllSubWorkflowByParentId(int workflowInstanceId);
 
-    List<TaskDefinition> getTaskNodeListByDefinition(long defineCode);
+    void removeTaskLogFile(Integer workflowInstanceId);
 
-    ProcessInstance findProcessInstanceById(int processId);
+    List<Long> findAllSubWorkflowDefinitionCode(long workflowDefinitionCode);
 
-    ProcessDefinition findProcessDefineById(int processDefinitionId);
+    String getTenantForWorkflow(String tenantCode, int userId);
 
-    ProcessDefinition findProcessDefinition(Long processDefinitionCode, int processDefinitionVersion);
+    int deleteWorkflowMapByParentId(int parentWorkflowId);
 
-    ProcessDefinition findProcessDefinitionByCode(Long processDefinitionCode);
+    WorkflowInstance findSubWorkflowInstance(Integer parentWorkflowInstanceId, Integer parentTaskId);
 
-    int deleteWorkProcessInstanceById(int processInstanceId);
-
-    int deleteAllSubWorkProcessByParentId(int processInstanceId);
-
-    void removeTaskLogFile(Integer processInstanceId);
-
-    void deleteWorkTaskInstanceByProcessInstanceId(int processInstanceId);
-
-    void recurseFindSubProcess(long parentCode, List<Long> ids);
-
-    void createRecoveryWaitingThreadCommand(Command originCommand, ProcessInstance processInstance);
-
-    Tenant getTenantForProcess(int tenantId, int userId);
-
-    Environment findEnvironmentByCode(Long environmentCode);
-
-    void setSubProcessParam(ProcessInstance subProcessInstance);
-
-    TaskInstance submitTaskWithRetry(ProcessInstance processInstance, TaskInstance taskInstance, int commitRetryTimes,
-                                     long commitInterval);
-
-    @Transactional
-    TaskInstance submitTask(ProcessInstance processInstance, TaskInstance taskInstance);
-
-    void createSubWorkProcess(ProcessInstance parentProcessInstance, TaskInstance task);
-
-    Map<String, String> getGlobalParamMap(String globalParams);
-
-    Command createSubProcessCommand(ProcessInstance parentProcessInstance,
-                                    ProcessInstance childInstance,
-                                    ProcessInstanceMap instanceMap,
-                                    TaskInstance task);
-
-    TaskInstance submitTaskInstanceToDB(TaskInstance taskInstance, ProcessInstance processInstance);
-
-    TaskExecutionStatus getSubmitTaskState(TaskInstance taskInstance, ProcessInstance processInstance);
-
-    int saveCommand(Command command);
-
-    boolean saveTaskInstance(TaskInstance taskInstance);
-
-    boolean createTaskInstance(TaskInstance taskInstance);
-
-    boolean updateTaskInstance(TaskInstance taskInstance);
-
-    TaskInstance findTaskInstanceById(Integer taskId);
-
-    List<TaskInstance> findTaskInstanceByIdList(List<Integer> idList);
-
-    void packageTaskInstance(TaskInstance taskInstance, ProcessInstance processInstance);
-
-    void updateTaskDefinitionResources(TaskDefinition taskDefinition);
-
-    List<Integer> findTaskIdByInstanceState(int instanceId, TaskExecutionStatus state);
-
-    List<TaskInstance> findValidTaskListByProcessId(Integer processInstanceId, int testFlag);
-
-    List<TaskInstance> findPreviousTaskListByWorkProcessId(Integer processInstanceId);
-
-    int updateWorkProcessInstanceMap(ProcessInstanceMap processInstanceMap);
-
-    int createWorkProcessInstanceMap(ProcessInstanceMap processInstanceMap);
-
-    ProcessInstanceMap findWorkProcessMapByParent(Integer parentWorkProcessId, Integer parentTaskId);
-
-    int deleteWorkProcessMapByParentId(int parentWorkProcessId);
-
-    ProcessInstance findSubProcessInstance(Integer parentProcessId, Integer parentTaskId);
-
-    ProcessInstance findParentProcessInstance(Integer subProcessId);
+    WorkflowInstance findParentWorkflowInstance(Integer subWorkflowInstanceId);
 
     void changeOutParam(TaskInstance taskInstance);
 
     Schedule querySchedule(int id);
 
-    List<Schedule> queryReleaseSchedulerListByProcessDefinitionCode(long processDefinitionCode);
-
-    Map<Long, String> queryWorkerGroupByProcessDefinitionCodes(List<Long> processDefinitionCodeList);
-
-    List<DependentProcessDefinition> queryDependentProcessDefinitionByProcessDefinitionCode(long processDefinitionCode);
-
-    List<ProcessInstance> queryNeedFailoverProcessInstances(String host);
-
-    List<String> queryNeedFailoverProcessInstanceHost();
-
-    @Transactional
-    void processNeedFailoverProcessInstances(ProcessInstance processInstance);
-
-    List<TaskInstance> queryNeedFailoverTaskInstances(String host);
+    List<Schedule> queryReleaseSchedulerListByWorkflowDefinitionCode(long workflowDefinitionCode);
 
     DataSource findDataSourceById(int id);
-
-    ProcessInstance findProcessInstanceByTaskId(int taskId);
-
-    List<UdfFunc> queryUdfFunListByIds(Integer[] ids);
-
-    String queryTenantCodeByResName(String resName, ResourceType resourceType);
-
-    List<Schedule> selectAllByProcessDefineCode(long[] codes);
-
-    ProcessInstance findLastSchedulerProcessInterval(Long definitionCode, DateInterval dateInterval, int testFlag);
-
-    ProcessInstance findLastManualProcessInterval(Long definitionCode, DateInterval dateInterval, int testFlag);
-
-    ProcessInstance findLastRunningProcess(Long definitionCode, Date startTime, Date endTime, int testFlag);
-
-    String queryUserQueueByProcessInstance(ProcessInstance processInstance);
-
-    ProjectUser queryProjectWithUserByProcessInstanceId(int processInstanceId);
-
-    String getTaskWorkerGroup(TaskInstance taskInstance);
-
-    List<Project> getProjectListHavePerm(int userId);
 
     <T> List<T> listUnauthorized(int userId, T[] needChecks, AuthorizationType authorizationType);
 
     User getUserById(int userId);
 
-    Resource getResourceById(int resourceId);
-
-    List<Resource> listResourceByIds(Integer[] resIds);
-
     String formatTaskAppId(TaskInstance taskInstance);
 
-    int switchVersion(ProcessDefinition processDefinition, ProcessDefinitionLog processDefinitionLog);
+    int switchVersion(WorkflowDefinition workflowDefinition, WorkflowDefinitionLog workflowDefinitionLog);
 
-    int switchProcessTaskRelationVersion(ProcessDefinition processDefinition);
+    int switchWorkflowTaskRelationVersion(WorkflowDefinition workflowDefinition);
 
     int switchTaskDefinitionVersion(long taskCode, int taskVersion);
 
@@ -224,80 +96,34 @@ public interface ProcessService {
 
     int saveTaskDefine(User operator, long projectCode, List<TaskDefinitionLog> taskDefinitionLogs, Boolean syncDefine);
 
-    int saveProcessDefine(User operator, ProcessDefinition processDefinition, Boolean syncDefine,
-                          Boolean isFromProcessDefine);
+    int saveWorkflowDefine(User operator, WorkflowDefinition workflowDefinition, Boolean syncDefine,
+                           Boolean isFromWorkflowDefinition);
 
-    int saveTaskRelation(User operator, long projectCode, long processDefinitionCode, int processDefinitionVersion,
-                         List<ProcessTaskRelationLog> taskRelationList, List<TaskDefinitionLog> taskDefinitionLogs,
+    int saveTaskRelation(User operator, long projectCode, long workflowDefinitionCode, int workflowDefinitionVersion,
+                         List<WorkflowTaskRelationLog> taskRelationList, List<TaskDefinitionLog> taskDefinitionLogs,
                          Boolean syncDefine);
 
     boolean isTaskOnline(long taskCode);
 
-    DAG<String, TaskNode, TaskNodeRelation> genDagGraph(ProcessDefinition processDefinition);
+    DAG<Long, TaskNode, TaskNodeRelation> genDagGraph(WorkflowDefinition workflowDefinition);
 
-    DagData genDagData(ProcessDefinition processDefinition);
+    DagData genDagData(WorkflowDefinition workflowDefinition);
 
-    List<TaskDefinitionLog> genTaskDefineList(List<ProcessTaskRelation> processTaskRelations);
+    List<WorkflowTaskRelation> findRelationByCode(long workflowDefinitionCode, int workflowDefinitionVersion);
 
-    List<TaskDefinitionLog> getTaskDefineLogListByRelation(List<ProcessTaskRelation> processTaskRelations);
-
-    TaskDefinition findTaskDefinition(long taskCode, int taskDefinitionVersion);
-
-    List<ProcessTaskRelation> findRelationByCode(long processDefinitionCode, int processDefinitionVersion);
-
-    List<TaskNode> transformTask(List<ProcessTaskRelation> taskRelationList,
+    List<TaskNode> transformTask(List<WorkflowTaskRelation> taskRelationList,
                                  List<TaskDefinitionLog> taskDefinitionLogs);
 
-    Map<ProcessInstance, TaskInstance> notifyProcessList(int processId);
-
-    DqExecuteResult getDqExecuteResultByTaskInstanceId(int taskInstanceId);
-
-    int updateDqExecuteResultUserId(int taskInstanceId);
-
-    int updateDqExecuteResultState(DqExecuteResult dqExecuteResult);
-
-    int deleteDqExecuteResultByTaskInstanceId(int taskInstanceId);
-
-    int deleteTaskStatisticsValueByTaskInstanceId(int taskInstanceId);
-
-    DqRule getDqRule(int ruleId);
-
-    List<DqRuleInputEntry> getRuleInputEntry(int ruleId);
-
-    List<DqRuleExecuteSql> getDqExecuteSql(int ruleId);
-
-    DqComparisonType getComparisonTypeById(int id);
-
-    boolean acquireTaskGroup(int taskId,
-                             String taskName, int groupId,
-                             int processId, int priority);
-
-    boolean robTaskGroupResource(TaskGroupQueue taskGroupQueue);
-
-    void releaseAllTaskGroup(int processInstanceId);
-
-    TaskInstance releaseTaskGroup(TaskInstance taskInstance);
-
-    void changeTaskGroupQueueStatus(int taskId, TaskGroupQueueStatus status);
-
     TaskGroupQueue insertIntoTaskGroupQueue(Integer taskId,
-                                            String taskName, Integer groupId,
-                                            Integer processId, Integer priority, TaskGroupQueueStatus status);
+                                            String taskName,
+                                            Integer groupId,
+                                            Integer workflowInstanceId,
+                                            Integer priority,
+                                            TaskGroupQueueStatus status);
 
-    int updateTaskGroupQueueStatus(Integer taskId, int status);
+    String findConfigYamlByName(String clusterName);
 
-    int updateTaskGroupQueue(TaskGroupQueue taskGroupQueue);
+    void forceWorkflowInstanceSuccessByTaskInstanceId(TaskInstance taskInstance);
 
-    TaskGroupQueue loadTaskGroupQueue(int taskId);
-
-    void sendStartTask2Master(ProcessInstance processInstance, int taskId,
-                              org.apache.dolphinscheduler.remote.command.CommandType taskType);
-
-    ProcessInstance loadNextProcess4Serial(long code, int state, int id);
-
-    public String findConfigYamlByName(String clusterName);
-
-    void forceProcessInstanceSuccessByTaskInstanceId(Integer taskInstanceId);
-
-    Integer queryTestDataSourceId(Integer onlineDataSourceId);
+    void setGlobalParamIfCommanded(WorkflowDefinition workflowDefinition, Map<String, String> cmdParam);
 }

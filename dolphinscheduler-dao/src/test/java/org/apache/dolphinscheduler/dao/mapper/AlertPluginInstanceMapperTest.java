@@ -23,8 +23,8 @@ import org.apache.dolphinscheduler.dao.entity.PluginDefine;
 
 import java.util.List;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -47,15 +47,19 @@ public class AlertPluginInstanceMapperTest extends BaseDaoTest {
     @Test
     public void testQueryAllAlertPluginInstanceList() {
         List<AlertPluginInstance> withoutSingleOne = alertPluginInstanceMapper.queryAllAlertPluginInstanceList();
-        Assert.assertEquals(0, withoutSingleOne.size());
+        Assertions.assertEquals(0, withoutSingleOne.size());
 
-        createAlertPluginInstance("test_instance_1");
+        createNormalAlertPluginInstance("test_instance_1");
         List<AlertPluginInstance> withExactlyOne = alertPluginInstanceMapper.queryAllAlertPluginInstanceList();
-        Assert.assertEquals(1, withExactlyOne.size());
+        Assertions.assertEquals(1, withExactlyOne.size());
 
-        createAlertPluginInstance("test_instance_2");
+        createNormalAlertPluginInstance("test_instance_2");
         List<AlertPluginInstance> withExactlyTwo = alertPluginInstanceMapper.queryAllAlertPluginInstanceList();
-        Assert.assertEquals(2, withExactlyTwo.size());
+        Assertions.assertEquals(2, withExactlyTwo.size());
+
+        createGlobalAlertPluginInstance("test_global_instance_1");
+        List<AlertPluginInstance> withExactlyThree = alertPluginInstanceMapper.queryAllAlertPluginInstanceList();
+        Assertions.assertEquals(3, withExactlyThree.size());
     }
 
     /**
@@ -64,9 +68,11 @@ public class AlertPluginInstanceMapperTest extends BaseDaoTest {
     @Test
     public void testExistInstanceName() {
         String instanceName = "test_instance";
-        Assert.assertNull(alertPluginInstanceMapper.existInstanceName(instanceName));
-        createAlertPluginInstance(instanceName);
-        Assert.assertTrue(alertPluginInstanceMapper.existInstanceName(instanceName));
+        Assertions.assertNull(alertPluginInstanceMapper.existInstanceName(instanceName));
+        createNormalAlertPluginInstance(instanceName);
+        Assertions.assertTrue(alertPluginInstanceMapper.existInstanceName(instanceName));
+        createGlobalAlertPluginInstance(instanceName);
+        Assertions.assertTrue(alertPluginInstanceMapper.existInstanceName(instanceName));
     }
 
     /**
@@ -74,21 +80,30 @@ public class AlertPluginInstanceMapperTest extends BaseDaoTest {
      */
     @Test
     public void testQueryByInstanceNamePage() {
-        createAlertPluginInstance("test_with_pattern_instance");
-        createAlertPluginInstance("test_no_instance");
+        createNormalAlertPluginInstance("test_with_pattern_instance");
+        createNormalAlertPluginInstance("test_no_instance");
 
         Page<AlertPluginInstance> page = new Page<>(1, 10);
         IPage<AlertPluginInstance> matchTwoRecord = alertPluginInstanceMapper.queryByInstanceNamePage(page, "test");
-        Assert.assertEquals(2, matchTwoRecord.getTotal());
+        Assertions.assertEquals(2, matchTwoRecord.getTotal());
 
         IPage<AlertPluginInstance> matchOneRecord = alertPluginInstanceMapper.queryByInstanceNamePage(page, "pattern");
-        Assert.assertEquals(1, matchOneRecord.getTotal());
+        Assertions.assertEquals(1, matchOneRecord.getTotal());
     }
 
     /**
-     * Create alert plugin instance according to given alter plugin name.
+     * Create normal alert plugin instance according to given alter plugin name.
      */
-    private void createAlertPluginInstance(String alterPluginInsName) {
+    private void createNormalAlertPluginInstance(String alterPluginInsName) {
+        PluginDefine pluginDefine = makeSurePluginDefineExists();
+        AlertPluginInstance alertPluginInstance = new AlertPluginInstance(pluginDefine.getId(), "", alterPluginInsName);
+        alertPluginInstanceMapper.insert(alertPluginInstance);
+    }
+
+    /**
+     * Create global alert plugin instance according to given alter plugin name.
+     */
+    private void createGlobalAlertPluginInstance(String alterPluginInsName) {
         PluginDefine pluginDefine = makeSurePluginDefineExists();
         AlertPluginInstance alertPluginInstance = new AlertPluginInstance(pluginDefine.getId(), "", alterPluginInsName);
         alertPluginInstanceMapper.insert(alertPluginInstance);

@@ -17,9 +17,11 @@
 
 package org.apache.dolphinscheduler.api.service;
 
+import org.apache.dolphinscheduler.api.dto.task.TaskFilterRequest;
+import org.apache.dolphinscheduler.api.utils.PageInfo;
 import org.apache.dolphinscheduler.api.utils.Result;
 import org.apache.dolphinscheduler.common.enums.ReleaseState;
-import org.apache.dolphinscheduler.common.enums.TaskExecuteType;
+import org.apache.dolphinscheduler.dao.entity.TaskDefinition;
 import org.apache.dolphinscheduler.dao.entity.User;
 
 import java.util.Map;
@@ -30,68 +32,37 @@ import java.util.Map;
 public interface TaskDefinitionService {
 
     /**
-     * create task definition
-     *
-     * @param loginUser login user
-     * @param projectCode project code
-     * @param taskDefinitionJson task definition json
-     */
-    Map<String, Object> createTaskDefinition(User loginUser,
-                                             long projectCode,
-                                             String taskDefinitionJson);
-
-    /**
-     * create single task definition that binds the workflow
-     *
-     * @param loginUser             login user
-     * @param projectCode           project code
-     * @param processDefinitionCode process definition code
-     * @param taskDefinitionJsonObj task definition json object
-     * @param upstreamCodes         upstream task codes, sep comma
-     * @return create result code
-     */
-    Map<String, Object> createTaskBindsWorkFlow(User loginUser,
-                                                long projectCode,
-                                                long processDefinitionCode,
-                                                String taskDefinitionJsonObj,
-                                                String upstreamCodes);
-
-    /**
      * query task definition
      *
      * @param loginUser login user
      * @param projectCode project code
-     * @param processCode process code
+     * @param workflowDefinitionCode workflow definition code
      * @param taskName task name
      */
     Map<String, Object> queryTaskDefinitionByName(User loginUser,
                                                   long projectCode,
-                                                  long processCode,
+                                                  long workflowDefinitionCode,
                                                   String taskName);
 
     /**
-     * delete task definition
+     * Get resource task definition by code
      *
      * @param loginUser login user
-     * @param projectCode project code
      * @param taskCode task code
+     * @return TaskDefinition
      */
-    Map<String, Object> deleteTaskDefinitionByCode(User loginUser,
-                                                   long projectCode,
-                                                   long taskCode);
+    TaskDefinition getTaskDefinition(User loginUser,
+                                     long taskCode);
 
     /**
-     * update task definition
+     * Get resource task definition according to query parameter
      *
-     * @param loginUser login user
-     * @param projectCode project code
-     * @param taskCode task code
-     * @param taskDefinitionJsonObj task definition json object
+     * @param loginUser         login user
+     * @param taskFilterRequest taskFilterRequest
+     * @return PageResourceResponse from condition
      */
-    Map<String, Object> updateTaskDefinition(User loginUser,
-                                             long projectCode,
-                                             long taskCode,
-                                             String taskDefinitionJsonObj);
+    PageInfo<TaskDefinition> filterTaskDefinition(User loginUser,
+                                                  TaskFilterRequest taskFilterRequest);
 
     /**
      * update task definition and upstream
@@ -165,28 +136,6 @@ public interface TaskDefinitionService {
                                                   long taskCode);
 
     /**
-     * query task definition list paging
-     *
-     * @param loginUser login user
-     * @param projectCode project code
-     * @param searchWorkflowName searchWorkflowName
-     * @param searchTaskName searchTaskName
-     * @param taskType taskType
-     * @param taskExecuteType taskExecuteType
-     * @param pageNo page number
-     * @param pageSize page size
-     * @return task definition page
-     */
-    Result queryTaskDefinitionListPaging(User loginUser,
-                                         long projectCode,
-                                         String searchWorkflowName,
-                                         String searchTaskName,
-                                         String taskType,
-                                         TaskExecuteType taskExecuteType,
-                                         Integer pageNo,
-                                         Integer pageSize);
-
-    /**
      * gen task code list
      *
      * @param genNum gen num
@@ -204,7 +153,9 @@ public interface TaskDefinitionService {
      * @return update result code
      */
     Map<String, Object> releaseTaskDefinition(User loginUser,
-                                             long projectCode,
-                                             long code,
-                                             ReleaseState releaseState);
+                                              long projectCode,
+                                              long code,
+                                              ReleaseState releaseState);
+
+    void deleteTaskByWorkflowDefinitionCode(long workflowDefinitionCode, int workflowDefinitionVersion);
 }

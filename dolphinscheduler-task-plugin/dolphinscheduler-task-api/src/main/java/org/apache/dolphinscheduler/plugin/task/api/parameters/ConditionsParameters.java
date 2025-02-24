@@ -18,71 +18,63 @@
 package org.apache.dolphinscheduler.plugin.task.api.parameters;
 
 import org.apache.dolphinscheduler.plugin.task.api.enums.DependentRelation;
-import org.apache.dolphinscheduler.plugin.task.api.model.DependentTaskModel;
-import org.apache.dolphinscheduler.plugin.task.api.model.ResourceInfo;
+import org.apache.dolphinscheduler.plugin.task.api.model.ConditionDependentTaskModel;
 
-import java.util.ArrayList;
+import org.apache.commons.collections4.CollectionUtils;
+
 import java.util.List;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+
+@EqualsAndHashCode(callSuper = true)
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ConditionsParameters extends AbstractParameters {
 
-    //depend node list and state, only need task name
-    private List<DependentTaskModel> dependTaskList;
-    private DependentRelation dependRelation;
+    private ConditionDependency dependence;
 
-    // node list to run when success
-    private List<String> successNode;
-
-    // node list to run when failed
-    private List<String> failedNode;
+    private ConditionResult conditionResult;
 
     @Override
     public boolean checkParameters() {
+        if (dependence == null || CollectionUtils.isEmpty(dependence.getDependTaskList())) {
+            return false;
+        }
+        if (conditionResult == null || CollectionUtils.isEmpty(conditionResult.getSuccessNode())
+                || CollectionUtils.isEmpty(conditionResult.getFailedNode())) {
+            return false;
+        }
         return true;
     }
 
-    @Override
-    public List<ResourceInfo> getResourceFilesList() {
-        return new ArrayList<>();
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ConditionDependency {
+
+        private List<ConditionDependentTaskModel> dependTaskList;
+
+        private DependentRelation relation;
     }
 
-    public List<DependentTaskModel> getDependTaskList() {
-        return dependTaskList;
-    }
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ConditionResult {
 
-    public void setDependTaskList(List<DependentTaskModel> dependTaskList) {
-        this.dependTaskList = dependTaskList;
-    }
+        private boolean conditionSuccess;
 
-    public DependentRelation getDependRelation() {
-        return dependRelation;
-    }
+        private List<Long> successNode;
 
-    public void setDependRelation(DependentRelation dependRelation) {
-        this.dependRelation = dependRelation;
-    }
-
-    public List<String> getSuccessNode() {
-        return successNode;
-    }
-
-    public void setSuccessNode(List<String> successNode) {
-        this.successNode = successNode;
-    }
-
-    public List<String> getFailedNode() {
-        return failedNode;
-    }
-
-    public void setFailedNode(List<String> failedNode) {
-        this.failedNode = failedNode;
-    }
-
-    public String getConditionResult() {
-        return "{"
-            + "\"successNode\": [\"" + successNode.get(0)
-            + "\"],\"failedNode\": [\"" + failedNode.get(0)
-            + "\"]}";
+        private List<Long> failedNode;
     }
 
 }

@@ -21,29 +21,29 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ButtonLink from '@/components/button-link'
 import { RowKey } from 'naive-ui/lib/data-table/src/interface'
-import { NEllipsis} from 'naive-ui'
+import { NEllipsis, NIcon, NSpin, NTooltip } from 'naive-ui'
 import {
-  queryProcessInstanceListPaging,
-  deleteProcessInstanceById,
-  batchDeleteProcessInstanceByIds
-} from '@/service/modules/process-instances'
+  queryWorkflowInstanceListPaging,
+  deleteWorkflowInstanceById,
+  batchDeleteWorkflowInstanceByIds
+} from '@/service/modules/workflow-instances'
 import { execute } from '@/service/modules/executors'
 import TableAction from './components/table-action'
 import {
   renderTableTime,
-  runningType
+  runningType,
+  workflowExecutionState
 } from '@/common/common'
-import { renderStateCell } from '../../task/instance/use-table'
 import {
   COLUMN_WIDTH_CONFIG,
   calculateTableWidth,
   DefaultTableWidth
 } from '@/common/column-width-config'
 import type { Router } from 'vue-router'
-import type { IWorkflowInstance } from '@/service/modules/process-instances/types'
+import type { IWorkflowInstance } from '@/service/modules/workflow-instances/types'
 import type { ICountDownParam } from './types'
 import type { ExecuteReq } from '@/service/modules/executors/types'
-import {renderEnvironmentalDistinctionCell} from "@/utils/environmental-distinction";
+import { IWorkflowExecutionState } from '@/common/types'
 
 export function useTable() {
   const { t } = useI18n()
@@ -57,6 +57,7 @@ export function useTable() {
     page: ref(1),
     pageSize: ref(10),
     totalPage: ref(1),
+    totalCount: ref(0),
     searchVal: ref(),
     executorName: ref(),
     host: ref(),
@@ -64,6 +65,10 @@ export function useTable() {
     startDate: ref(),
     endDate: ref(),
     projectCode: ref(Number(router.currentRoute.value.params.projectCode)),
+    workflowDefinitionCode: router.currentRoute.value.query
+      .workflowDefinitionCode
+      ? ref(Number(router.currentRoute.value.query.workflowDefinitionCode))
+      : ref(),
     loadingRef: ref(false)
   })
 
@@ -85,22 +90,30 @@ export function useTable() {
         key: 'name',
         ...COLUMN_WIDTH_CONFIG['linkName'],
         className: 'workflow-name',
+        resizable: true,
+        width: 300,
+        minWidth: 300,
+        maxWidth: 600,
         render: (row: IWorkflowInstance) =>
           h(
             ButtonLink,
             {
-              onClick: () =>
-                void router.push({
+              onClick: () => {
+                const routeUrl = router.resolve({
                   name: 'workflow-instance-detail',
                   params: { id: row.id },
-                  query: { code: row.processDefinitionCode }
+                  query: { code: row.workflowDefinitionCode }
                 })
+                window.open(routeUrl.href, '_blank')
+              }
             },
             {
               default: () =>
                 h(
                   NEllipsis,
-                  COLUMN_WIDTH_CONFIG['linkEllipsis'],
+                  {
+                    style: 'max-width: 580px;line-height: 1.5'
+                  },
                   () => row.name
                 )
             }
@@ -111,15 +124,8 @@ export function useTable() {
         key: 'state',
         ...COLUMN_WIDTH_CONFIG['state'],
         className: 'workflow-status',
-        render: (_row: IWorkflowInstance) => renderStateCell(_row.state, t)
-      },
-      {
-        title: t('project.workflow.operating_environment'),
-        key: 'testFlag',
-        width: 160,
-        className: 'workflow-testFlag',
         render: (_row: IWorkflowInstance) =>
-          renderEnvironmentalDistinctionCell(_row.testFlag, t)
+          renderWorkflowStateCell(_row.state, t)
       },
       {
         title: t('project.workflow.run_type'),
@@ -193,14 +199,14 @@ export function useTable() {
             onReRun: () =>
               _countDownFn({
                 index,
-                processInstanceId: _row.id,
+                workflowInstanceId: _row.id,
                 executeType: 'REPEAT_RUNNING',
                 buttonType: 'run'
               }),
             onReStore: () =>
               _countDownFn({
                 index,
-                processInstanceId: _row.id,
+                workflowInstanceId: _row.id,
                 executeType: 'START_FAILURE_TASK_PROCESS',
                 buttonType: 'store'
               }),
@@ -208,13 +214,13 @@ export function useTable() {
               if (_row.state === 'STOP') {
                 _countDownFn({
                   index,
-                  processInstanceId: _row.id,
+                  workflowInstanceId: _row.id,
                   executeType: 'RECOVER_SUSPENDED_PROCESS',
                   buttonType: 'suspend'
                 })
               } else {
                 _upExecutorsState({
-                  processInstanceId: _row.id,
+                  workflowInstanceId: _row.id,
                   executeType: 'STOP'
                 })
               }
@@ -223,13 +229,13 @@ export function useTable() {
               if (_row.state === 'PAUSE') {
                 _countDownFn({
                   index,
-                  processInstanceId: _row.id,
+                  workflowInstanceId: _row.id,
                   executeType: 'RECOVER_SUSPENDED_PROCESS',
                   buttonType: 'suspend'
                 })
               } else {
                 _upExecutorsState({
-                  processInstanceId: _row.id,
+                  workflowInstanceId: _row.id,
                   executeType: 'PAUSE'
                 })
               }
@@ -254,10 +260,12 @@ export function useTable() {
       host: variables.host,
       stateType: variables.stateType,
       startDate: variables.startDate,
-      endDate: variables.endDate
+      endDate: variables.endDate,
+      workflowDefinitionCode: variables.workflowDefinitionCode
     }
-    queryProcessInstanceListPaging({ ...params }, variables.projectCode).then(
+    queryWorkflowInstanceListPaging({ ...params }, variables.projectCode).then(
       (res: any) => {
+        variables.totalCount = res.total
         variables.totalPage = res.totalPage
         variables.tableData = res.totalList.map((item: any) => {
           return { ...item }
@@ -268,7 +276,7 @@ export function useTable() {
   }
 
   const deleteInstance = (id: number) => {
-    deleteProcessInstanceById(id, variables.projectCode).then(() => {
+    deleteWorkflowInstanceById(id, variables.projectCode).then(() => {
       window.$message.success(t('project.workflow.success'))
       if (variables.tableData.length === 1 && variables.page > 1) {
         variables.page -= 1
@@ -280,10 +288,10 @@ export function useTable() {
 
   const batchDeleteInstance = () => {
     const data = {
-      processInstanceIds: _.join(variables.checkedRowKeys, ',')
+      workflowInstanceIds: _.join(variables.checkedRowKeys, ',')
     }
 
-    batchDeleteProcessInstanceByIds(data, variables.projectCode).then(() => {
+    batchDeleteWorkflowInstanceByIds(data, variables.projectCode).then(() => {
       window.$message.success(t('project.workflow.success'))
 
       if (
@@ -352,4 +360,33 @@ export function useTable() {
     getTableData,
     batchDeleteInstance
   }
+}
+
+export function renderWorkflowStateCell(
+  state: IWorkflowExecutionState,
+  t: Function
+) {
+  if (!state) return ''
+
+  const stateOption = workflowExecutionState(t)[state]
+
+  const Icon = h(
+    NIcon,
+    {
+      color: stateOption.color,
+      class: stateOption.classNames,
+      style: {
+        display: 'flex'
+      },
+      size: 20
+    },
+    () => h(stateOption.icon)
+  )
+  return h(NTooltip, null, {
+    trigger: () => {
+      if (!stateOption.isSpin) return Icon
+      return h(NSpin, { size: 20 }, { icon: () => Icon })
+    },
+    default: () => stateOption.desc
+  })
 }

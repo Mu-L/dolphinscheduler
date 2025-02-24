@@ -24,11 +24,10 @@ import org.apache.dolphinscheduler.alert.api.AlertResult;
 
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public final class EmailAlertChannel implements AlertChannel {
-    private static final Logger logger = LoggerFactory.getLogger(EmailAlertChannel.class);
 
     @Override
     public AlertResult process(AlertInfo info) {
@@ -36,29 +35,25 @@ public final class EmailAlertChannel implements AlertChannel {
         AlertData alert = info.getAlertData();
         Map<String, String> paramsMap = info.getAlertParams();
         if (null == paramsMap) {
-            return new AlertResult("false", "mail params is null");
+            return new AlertResult(false, "mail params is null");
         }
         MailSender mailSender = new MailSender(paramsMap);
         AlertResult alertResult = mailSender.sendMails(alert.getTitle(), alert.getContent());
 
-        boolean flag;
-
         if (alertResult == null) {
             alertResult = new AlertResult();
-            alertResult.setStatus("false");
+            alertResult.setSuccess(false);
             alertResult.setMessage("alert send error.");
-            logger.info("alert send error : {}", alertResult.getMessage());
+            log.info("alert send error : {}", alertResult.getMessage());
             return alertResult;
         }
 
-        flag = Boolean.parseBoolean(String.valueOf(alertResult.getStatus()));
-
-        if (flag) {
-            logger.info("alert send success");
+        if (alertResult.isSuccess()) {
+            log.info("alert send success");
             alertResult.setMessage("email send success.");
         } else {
             alertResult.setMessage("alert send error.");
-            logger.info("alert send error : {}", alertResult.getMessage());
+            log.info("alert send error : {}", alertResult.getMessage());
         }
 
         return alertResult;

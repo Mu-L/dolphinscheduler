@@ -44,7 +44,8 @@ export function useMr({
     delayTime: 0,
     timeout: 30,
     programType: 'SCALA',
-    timeoutNotifyStrategy: ['WARN']
+    timeoutNotifyStrategy: ['WARN'],
+    yarnQueue: ''
   } as INodeData)
 
   return {
@@ -54,7 +55,7 @@ export function useMr({
       Fields.useRunFlag(),
       Fields.useDescription(),
       Fields.useTaskPriority(),
-      Fields.useWorkerGroup(),
+      Fields.useWorkerGroup(projectCode),
       Fields.useEnvironmentName(model, !data?.id),
       ...Fields.useTaskGroup(model, projectCode),
       ...Fields.useFailed(),

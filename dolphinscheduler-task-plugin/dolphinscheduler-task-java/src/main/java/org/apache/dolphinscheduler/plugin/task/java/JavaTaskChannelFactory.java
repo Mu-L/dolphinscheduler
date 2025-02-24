@@ -19,14 +19,12 @@ package org.apache.dolphinscheduler.plugin.task.java;
 
 import org.apache.dolphinscheduler.plugin.task.api.TaskChannel;
 import org.apache.dolphinscheduler.plugin.task.api.TaskChannelFactory;
-import org.apache.dolphinscheduler.spi.params.base.PluginParams;
-
-import java.util.List;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(TaskChannelFactory.class)
 public class JavaTaskChannelFactory implements TaskChannelFactory {
+
     /**
      * Construct a channel for a Java task
      *
@@ -47,13 +45,4 @@ public class JavaTaskChannelFactory implements TaskChannelFactory {
         return "JAVA";
     }
 
-    /**
-     * Gets the plug-in parameters for the Java task
-     *
-     * @return List<PluginParams>
-     **/
-    @Override
-    public List<PluginParams> getParams() {
-        return null;
-    }
 }

@@ -20,10 +20,12 @@ package org.apache.dolphinscheduler.plugin.task.api.utils;
 import org.apache.dolphinscheduler.plugin.task.api.enums.DependResult;
 import org.apache.dolphinscheduler.plugin.task.api.enums.DependentRelation;
 import org.apache.dolphinscheduler.plugin.task.api.model.DateInterval;
+import org.apache.dolphinscheduler.plugin.task.api.model.Property;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 public class DependentUtils {
 
@@ -40,8 +42,7 @@ public class DependentUtils {
             case AND:
                 if (dependResultList.contains(DependResult.FAILED)) {
                     dependResult = DependResult.FAILED;
-                }
-                if (dependResultList.contains(DependResult.WAITING)) {
+                } else if (dependResultList.contains(DependResult.WAITING)) {
                     dependResult = DependResult.WAITING;
                 }
                 break;
@@ -130,19 +131,51 @@ public class DependentUtils {
             case "thisMonth":
                 result = DependentDateUtils.getThisMonthInterval(businessDate);
                 break;
+            case "thisMonthBegin":
+                result = DependentDateUtils.getNeededMonthBeginInterval(businessDate, true, 0);
+                break;
+            case "thisMonthEnd":
+                result = DependentDateUtils.getNeededMonthBeginInterval(businessDate, false, 0);
+                break;
             case "lastMonth":
                 result = DependentDateUtils.getLastMonthInterval(businessDate);
                 break;
             case "lastMonthBegin":
-                result = DependentDateUtils.getLastMonthBeginInterval(businessDate, true);
+                result = DependentDateUtils.getNeededMonthBeginInterval(businessDate, true, -1);
                 break;
             case "lastMonthEnd":
-                result = DependentDateUtils.getLastMonthBeginInterval(businessDate, false);
+                result = DependentDateUtils.getNeededMonthBeginInterval(businessDate, false, -1);
                 break;
             default:
                 break;
         }
         return result;
+    }
+
+    /**
+     * add varPool from dependItemVarPoolMap to dependTaskVarPoolMap
+     *
+     * @param dependItemVarPoolPropertyMap dependItemVarPoolPropertyMap
+     * @param dependItemVarPoolEndTimeMap dependItemVarPoolEndTimeMap
+     * @param dependTaskVarPoolPropertyMap dependTaskVarPoolPropertyMap
+     * @param dependTaskVarPoolEndTimeMap dependTaskVarPoolEndTimeMap
+     */
+    public static void addTaskVarPool(Map<String, Property> dependItemVarPoolPropertyMap,
+                                      Map<String, Long> dependItemVarPoolEndTimeMap,
+                                      Map<String, Property> dependTaskVarPoolPropertyMap,
+                                      Map<String, Long> dependTaskVarPoolEndTimeMap) {
+        dependItemVarPoolPropertyMap.forEach((prop, property) -> {
+            Long itemEndTime = dependItemVarPoolEndTimeMap.get(prop);
+            if (dependTaskVarPoolPropertyMap.containsKey(prop)) {
+                if (itemEndTime < dependTaskVarPoolEndTimeMap.get(prop)) {
+                    dependTaskVarPoolPropertyMap.put(prop, property);
+                    dependTaskVarPoolEndTimeMap.put(prop, itemEndTime);
+                }
+            } else {
+                dependTaskVarPoolPropertyMap.put(prop, property);
+                dependTaskVarPoolEndTimeMap.put(prop, itemEndTime);
+            }
+        });
     }
 
 }

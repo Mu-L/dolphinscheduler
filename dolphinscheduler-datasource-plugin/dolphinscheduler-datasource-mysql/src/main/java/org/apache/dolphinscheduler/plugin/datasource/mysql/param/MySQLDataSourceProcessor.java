@@ -17,6 +17,9 @@
 
 package org.apache.dolphinscheduler.plugin.datasource.mysql.param;
 
+import org.apache.dolphinscheduler.common.constants.Constants;
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
+import org.apache.dolphinscheduler.plugin.datasource.api.constants.DataSourceConstants;
 import org.apache.dolphinscheduler.plugin.datasource.api.datasource.AbstractDataSourceProcessor;
 import org.apache.dolphinscheduler.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import org.apache.dolphinscheduler.plugin.datasource.api.datasource.DataSourceProcessor;
@@ -24,28 +27,25 @@ import org.apache.dolphinscheduler.plugin.datasource.api.utils.PasswordUtils;
 import org.apache.dolphinscheduler.spi.datasource.BaseConnectionParam;
 import org.apache.dolphinscheduler.spi.datasource.ConnectionParam;
 import org.apache.dolphinscheduler.spi.enums.DbType;
-import org.apache.dolphinscheduler.spi.utils.Constants;
-import org.apache.dolphinscheduler.spi.utils.JSONUtils;
-import org.apache.dolphinscheduler.spi.utils.StringUtils;
 
 import org.apache.commons.collections4.MapUtils;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+import com.alibaba.druid.sql.parser.SQLParserUtils;
 import com.google.auto.service.AutoService;
 
 @AutoService(DataSourceProcessor.class)
+@Slf4j
 public class MySQLDataSourceProcessor extends AbstractDataSourceProcessor {
-
-    private final Logger logger = LoggerFactory.getLogger(MySQLDataSourceProcessor.class);
 
     private static final String ALLOW_LOAD_LOCAL_IN_FILE_NAME = "allowLoadLocalInfile";
 
@@ -55,8 +55,6 @@ public class MySQLDataSourceProcessor extends AbstractDataSourceProcessor {
 
     private static final String ALLOW_URL_IN_LOCAL_IN_FILE_NAME = "allowUrlInLocalInfile";
 
-    private static final String APPEND_PARAMS = "allowLoadLocalInfile=false&autoDeserialize=false&allowLocalInfile=false&allowUrlInLocalInfile=false";
-
     @Override
     public BaseDataSourceParamDTO castDatasourceParamDTO(String paramJson) {
         return JSONUtils.parseObject(paramJson, MySQLDataSourceParamDTO.class);
@@ -64,14 +62,12 @@ public class MySQLDataSourceProcessor extends AbstractDataSourceProcessor {
 
     @Override
     public BaseDataSourceParamDTO createDatasourceParamDTO(String connectionJson) {
-        MySQLConnectionParam
-                connectionParams = (MySQLConnectionParam) createConnectionParams(connectionJson);
-        MySQLDataSourceParamDTO
-                mysqlDatasourceParamDTO = new MySQLDataSourceParamDTO();
+        MySQLConnectionParam connectionParams = (MySQLConnectionParam) createConnectionParams(connectionJson);
+        MySQLDataSourceParamDTO mysqlDatasourceParamDTO = new MySQLDataSourceParamDTO();
 
         mysqlDatasourceParamDTO.setUserName(connectionParams.getUser());
         mysqlDatasourceParamDTO.setDatabase(connectionParams.getDatabase());
-        mysqlDatasourceParamDTO.setOther(parseOther(connectionParams.getOther()));
+        mysqlDatasourceParamDTO.setOther(connectionParams.getOther());
 
         String address = connectionParams.getAddress();
         String[] hostSeperator = address.split(Constants.DOUBLE_SLASH);
@@ -85,11 +81,11 @@ public class MySQLDataSourceProcessor extends AbstractDataSourceProcessor {
     @Override
     public BaseConnectionParam createConnectionParams(BaseDataSourceParamDTO dataSourceParam) {
         MySQLDataSourceParamDTO mysqlDatasourceParam = (MySQLDataSourceParamDTO) dataSourceParam;
-        String address = String.format("%s%s:%s", Constants.JDBC_MYSQL, mysqlDatasourceParam.getHost(), mysqlDatasourceParam.getPort());
+        String address = String.format("%s%s:%s", DataSourceConstants.JDBC_MYSQL, mysqlDatasourceParam.getHost(),
+                mysqlDatasourceParam.getPort());
         String jdbcUrl = String.format("%s/%s", address, mysqlDatasourceParam.getDatabase());
 
-        MySQLConnectionParam
-                mysqlConnectionParam = new MySQLConnectionParam();
+        MySQLConnectionParam mysqlConnectionParam = new MySQLConnectionParam();
         mysqlConnectionParam.setJdbcUrl(jdbcUrl);
         mysqlConnectionParam.setDatabase(mysqlDatasourceParam.getDatabase());
         mysqlConnectionParam.setAddress(address);
@@ -97,8 +93,7 @@ public class MySQLDataSourceProcessor extends AbstractDataSourceProcessor {
         mysqlConnectionParam.setPassword(PasswordUtils.encodePassword(mysqlDatasourceParam.getPassword()));
         mysqlConnectionParam.setDriverClassName(getDatasourceDriver());
         mysqlConnectionParam.setValidationQuery(getValidationQuery());
-        mysqlConnectionParam.setOther(transformOther(mysqlDatasourceParam.getOther()));
-        mysqlConnectionParam.setProps(mysqlDatasourceParam.getOther());
+        mysqlConnectionParam.setOther(mysqlDatasourceParam.getOther());
 
         return mysqlConnectionParam;
     }
@@ -110,23 +105,22 @@ public class MySQLDataSourceProcessor extends AbstractDataSourceProcessor {
 
     @Override
     public String getDatasourceDriver() {
-        return Constants.COM_MYSQL_CJ_JDBC_DRIVER;
+        return DataSourceConstants.COM_MYSQL_CJ_JDBC_DRIVER;
     }
 
     @Override
     public String getValidationQuery() {
-        return Constants.MYSQL_VALIDATION_QUERY;
+        return DataSourceConstants.MYSQL_VALIDATION_QUERY;
     }
 
     @Override
     public String getJdbcUrl(ConnectionParam connectionParam) {
-        MySQLConnectionParam
-                mysqlConnectionParam = (MySQLConnectionParam) connectionParam;
-        String jdbcUrl = mysqlConnectionParam.getJdbcUrl();
-        if (!StringUtils.isEmpty(mysqlConnectionParam.getOther())) {
-            return String.format("%s?%s&%s", jdbcUrl, mysqlConnectionParam.getOther(), APPEND_PARAMS);
+        MySQLConnectionParam mysqlConnectionParam = (MySQLConnectionParam) connectionParam;
+        if (MapUtils.isNotEmpty(mysqlConnectionParam.getOther())) {
+            return String.format("%s?%s", mysqlConnectionParam.getJdbcUrl(),
+                    transformOther(mysqlConnectionParam.getOther()));
         }
-        return String.format("%s?%s", jdbcUrl, APPEND_PARAMS);
+        return mysqlConnectionParam.getJdbcUrl();
     }
 
     @Override
@@ -135,15 +129,40 @@ public class MySQLDataSourceProcessor extends AbstractDataSourceProcessor {
         Class.forName(getDatasourceDriver());
         String user = mysqlConnectionParam.getUser();
         if (user.contains(AUTO_DESERIALIZE)) {
-            logger.warn("sensitive param : {} in username field is filtered", AUTO_DESERIALIZE);
+            log.warn("sensitive param : {} in username field is filtered", AUTO_DESERIALIZE);
             user = user.replace(AUTO_DESERIALIZE, "");
         }
         String password = PasswordUtils.decodePassword(mysqlConnectionParam.getPassword());
         if (password.contains(AUTO_DESERIALIZE)) {
-            logger.warn("sensitive param : {} in password field is filtered", AUTO_DESERIALIZE);
+            log.warn("sensitive param : {} in password field is filtered", AUTO_DESERIALIZE);
             password = password.replace(AUTO_DESERIALIZE, "");
         }
-        return DriverManager.getConnection(getJdbcUrl(connectionParam), user, password);
+
+        Properties connectionProperties = getConnectionProperties(mysqlConnectionParam, user, password);
+
+        return DriverManager.getConnection(getJdbcUrl(connectionParam), connectionProperties);
+    }
+
+    private Properties getConnectionProperties(MySQLConnectionParam mysqlConnectionParam, String user,
+                                               String password) {
+        Properties connectionProperties = new Properties();
+        connectionProperties.put("user", user);
+        connectionProperties.put("password", password);
+        Map<String, String> paramMap = mysqlConnectionParam.getOther();
+        if (MapUtils.isNotEmpty(paramMap)) {
+            paramMap.forEach((k, v) -> {
+                if (!checkKeyIsLegitimate(k)) {
+                    log.info("Key `{}` is not legitimate for security reason", k);
+                    return;
+                }
+                connectionProperties.put(k, v);
+            });
+        }
+        connectionProperties.put(AUTO_DESERIALIZE, "false");
+        connectionProperties.put(ALLOW_LOAD_LOCAL_IN_FILE_NAME, "false");
+        connectionProperties.put(ALLOW_LOCAL_IN_FILE_NAME, "false");
+        connectionProperties.put(ALLOW_URL_IN_LOCAL_IN_FILE_NAME, "false");
+        return connectionProperties;
     }
 
     @Override
@@ -156,23 +175,10 @@ public class MySQLDataSourceProcessor extends AbstractDataSourceProcessor {
         return new MySQLDataSourceProcessor();
     }
 
-    private String transformOther(Map<String, String> paramMap) {
-        if (MapUtils.isEmpty(paramMap)) {
-            return null;
-        }
-        Map<String, String> otherMap = new HashMap<>();
-        paramMap.forEach((k, v) -> {
-            if (!checkKeyIsLegitimate(k)) {
-                return;
-            }
-            otherMap.put(k, v);
-        });
-        if (MapUtils.isEmpty(otherMap)) {
-            return null;
-        }
-        StringBuilder stringBuilder = new StringBuilder();
-        otherMap.forEach((key, value) -> stringBuilder.append(String.format("%s=%s&", key, value)));
-        return stringBuilder.toString();
+    @Override
+    public List<String> splitAndRemoveComment(String sql) {
+        String cleanSQL = SQLParserUtils.removeComment(sql, com.alibaba.druid.DbType.mysql);
+        return SQLParserUtils.split(cleanSQL, com.alibaba.druid.DbType.mysql);
     }
 
     private static boolean checkKeyIsLegitimate(String key) {
@@ -182,15 +188,13 @@ public class MySQLDataSourceProcessor extends AbstractDataSourceProcessor {
                 && !key.contains(ALLOW_URL_IN_LOCAL_IN_FILE_NAME);
     }
 
-    private Map<String, String> parseOther(String other) {
-        if (StringUtils.isEmpty(other)) {
-            return null;
+    private String transformOther(Map<String, String> otherMap) {
+        if (MapUtils.isNotEmpty(otherMap)) {
+            List<String> list = new ArrayList<>(otherMap.size());
+            otherMap.forEach((key, value) -> list.add(String.format("%s=%s", key, value)));
+            return String.join("&", list);
         }
-        Map<String, String> otherMap = new LinkedHashMap<>();
-        for (String config : other.split("&")) {
-            otherMap.put(config.split("=")[0], config.split("=")[1]);
-        }
-        return otherMap;
+        return null;
     }
 
 }

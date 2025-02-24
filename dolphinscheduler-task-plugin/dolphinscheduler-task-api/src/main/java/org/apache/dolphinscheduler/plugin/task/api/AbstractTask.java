@@ -26,29 +26,17 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Marker;
-import org.slf4j.MarkerFactory;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
-/**
- * executive task
- */
+@Slf4j
 public abstract class AbstractTask {
 
-    public static final Marker FINALIZE_SESSION_MARKER = MarkerFactory.getMarker("FINALIZE_SESSION");
-
-    protected final Logger logger =
-            LoggerFactory.getLogger(String.format(TaskConstants.TASK_LOG_LOGGER_NAME_FORMAT, getClass()));
-
-    public String rgex = "['\"]*\\$\\{(.*?)\\}['\"]*";
-
-    /**
-     * varPool string
-     */
-    protected String varPool;
+    @Getter
+    @Setter
+    protected Map<String, String> taskOutputParams;
 
     /**
      * taskExecutionContext
@@ -59,11 +47,6 @@ public abstract class AbstractTask {
      * SHELL process pid
      */
     protected int processId;
-
-    /**
-     * SHELL result string
-     */
-    protected String resultString;
 
     /**
      * other resource manager appId , for example : YARN etc
@@ -94,21 +77,10 @@ public abstract class AbstractTask {
     public void init() {
     }
 
-    public String getPreScript() {
-        return null;
-    }
-
+    // todo: return TaskResult rather than store the result in Task
     public abstract void handle(TaskCallBack taskCallBack) throws TaskException;
 
     public abstract void cancel() throws TaskException;
-
-    public void setVarPool(String varPool) {
-        this.varPool = varPool;
-    }
-
-    public String getVarPool() {
-        return varPool;
-    }
 
     /**
      * get exit status code
@@ -129,14 +101,6 @@ public abstract class AbstractTask {
 
     public void setProcessId(int processId) {
         this.processId = processId;
-    }
-
-    public String getResultString() {
-        return resultString;
-    }
-
-    public void setResultString(String resultString) {
-        this.resultString = resultString;
     }
 
     public String getAppIds() {
@@ -176,19 +140,13 @@ public abstract class AbstractTask {
      * @return exit status
      */
     public TaskExecutionStatus getExitStatus() {
-        TaskExecutionStatus status;
-        switch (getExitStatusCode()) {
-            case TaskConstants.EXIT_CODE_SUCCESS:
-                status = TaskExecutionStatus.SUCCESS;
-                break;
-            case TaskConstants.EXIT_CODE_KILL:
-                status = TaskExecutionStatus.KILL;
-                break;
-            default:
-                status = TaskExecutionStatus.FAILURE;
-                break;
+        if (exitStatusCode == TaskConstants.EXIT_CODE_SUCCESS) {
+            return TaskExecutionStatus.SUCCESS;
         }
-        return status;
+        if (exitStatusCode == TaskConstants.EXIT_CODE_KILL || exitStatusCode == TaskConstants.EXIT_CODE_HARD_KILL) {
+            return TaskExecutionStatus.KILL;
+        }
+        return TaskExecutionStatus.FAILURE;
     }
 
     /**
@@ -197,49 +155,47 @@ public abstract class AbstractTask {
      * @param logs log list
      */
     public void logHandle(LinkedBlockingQueue<String> logs) {
-        // note that the "new line" is added here to facilitate log parsing
-        if (logs.contains(FINALIZE_SESSION_MARKER.toString())) {
-            logger.info(FINALIZE_SESSION_MARKER, FINALIZE_SESSION_MARKER.toString());
-        } else {
-            StringJoiner joiner = new StringJoiner("\n\t");
-            while (!logs.isEmpty()) {
-                joiner.add(logs.poll());
-            }
-            logger.info(" -> {}", joiner);
+
+        StringJoiner joiner = new StringJoiner("\n\t");
+        while (!logs.isEmpty()) {
+            joiner.add(logs.poll());
         }
+        log.info(" -> {}", joiner);
     }
 
     /**
      * regular expressions match the contents between two specified strings
      *
-     * @param content content
-     * @param rgex rgex
-     * @param sqlParamsMap sql params map
+     * @param content        content
+     * @param sqlParamsMap   sql params map
      * @param paramsPropsMap params props map
      */
-    public void setSqlParamsMap(String content, String rgex, Map<Integer, Property> sqlParamsMap,
+    public void setSqlParamsMap(String content, Map<Integer, Property> sqlParamsMap,
                                 Map<String, Property> paramsPropsMap, int taskInstanceId) {
         if (paramsPropsMap == null) {
             return;
         }
 
-        Pattern pattern = Pattern.compile(rgex);
-        Matcher m = pattern.matcher(content);
+        Matcher m = TaskConstants.SQL_PARAMS_PATTERN.matcher(content);
         int index = 1;
         while (m.find()) {
 
-            String paramName = m.group(1);
+            String paramName = m.group(TaskConstants.GROUP_NAME1);
+            if (paramName == null) {
+                paramName = m.group(TaskConstants.GROUP_NAME2);
+            }
+
             Property prop = paramsPropsMap.get(paramName);
 
             if (prop == null) {
-                logger.error(
+                log.error(
                         "setSqlParamsMap: No Property with paramName: {} is found in paramsPropsMap of task instance"
                                 + " with id: {}. So couldn't put Property in sqlParamsMap.",
                         paramName, taskInstanceId);
             } else {
                 sqlParamsMap.put(index, prop);
                 index++;
-                logger.info(
+                log.info(
                         "setSqlParamsMap: Property with paramName: {} put in sqlParamsMap of content {} successfully.",
                         paramName, content);
             }

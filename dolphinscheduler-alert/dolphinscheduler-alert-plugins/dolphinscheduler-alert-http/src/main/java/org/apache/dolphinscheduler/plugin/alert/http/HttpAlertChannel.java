@@ -25,12 +25,13 @@ import org.apache.dolphinscheduler.alert.api.AlertResult;
 import java.util.Map;
 
 public final class HttpAlertChannel implements AlertChannel {
+
     @Override
     public AlertResult process(AlertInfo alertInfo) {
         AlertData alertData = alertInfo.getAlertData();
         Map<String, String> paramsMap = alertInfo.getAlertParams();
         if (null == paramsMap) {
-            return new AlertResult("false", "http params is null");
+            return new AlertResult(false, "http params is null");
         }
 
         return new HttpSender(paramsMap).send(alertData.getContent());

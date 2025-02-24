@@ -24,7 +24,8 @@ import {
   toRef,
   watch,
   onBeforeUnmount,
-  computed
+  computed,
+  reactive
 } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
@@ -54,6 +55,9 @@ import './x6-style.scss'
 import { queryLog } from '@/service/modules/log'
 import { useAsyncState } from '@vueuse/core'
 import utils from '@/utils'
+import { useUISettingStore } from '@/store/ui-setting/ui-setting'
+import { executeTask } from '@/service/modules/executors'
+import DependenciesModal from '@/views/projects/components/dependencies/dependencies-modal'
 
 const props = {
   // If this prop is passed, it means from definition detail
@@ -84,6 +88,9 @@ export default defineComponent({
     const route = useRoute()
     const theme = useThemeStore()
 
+    const uiSettingStore = useUISettingStore()
+    const logTimer = uiSettingStore.getLogTimer
+
     // Whether the graph can be operated
     provide('readonly', toRef(props, 'readonly'))
 
@@ -110,7 +117,7 @@ export default defineComponent({
       appendTask,
       editTask,
       copyTask,
-      processDefinition,
+      workflowDefinition,
       removeTasks
     } = useTaskEdit({ graph, definition: toRef(props, 'definition') })
 
@@ -124,11 +131,16 @@ export default defineComponent({
       if (props.definition) {
         return (
           route.name === 'workflow-definition-detail' &&
-          props.definition!.processDefinition.releaseState === 'ONLINE'
+          props.definition!.workflowDefinition.releaseState === 'ONLINE'
         )
       } else {
         return false
       }
+    })
+
+    // execute task buttons in the dag node menu
+    const executeTaskDisplay = computed(() => {
+      return route.name === 'workflow-instance-detail'
     })
 
     // other button in the dag node menu
@@ -142,7 +154,7 @@ export default defineComponent({
           props.instance.state === 'STOP'
         )
       } else if (props.definition) {
-        return props.definition!.processDefinition.releaseState === 'OFFLINE'
+        return props.definition!.workflowDefinition.releaseState === 'OFFLINE'
       } else {
         return false
       }
@@ -218,11 +230,11 @@ export default defineComponent({
       const connects = getConnects(
         nodes,
         edges,
-        processDefinition.value.taskDefinitionList as any
+        workflowDefinition.value.taskDefinitionList as any
       )
       const locations = getLocations(nodes)
       context.emit('save', {
-        taskDefinitions: processDefinition.value.taskDefinitionList,
+        taskDefinitions: workflowDefinition.value.taskDefinitionList,
         saveForm,
         connects,
         locations
@@ -233,23 +245,36 @@ export default defineComponent({
     const handleViewLog = (taskId: number, taskType: string) => {
       taskModalVisible.value = false
       viewLog(taskId, taskType)
-      getLogs()
+
+      getLogs(logTimer)
     }
 
-    const getLogs = () => {
+    let getLogsID: number
+
+    const getLogs = (logTimer: number) => {
       const { state } = useAsyncState(
         queryLog({
           taskInstanceId: nodeVariables.logTaskId,
           limit: nodeVariables.limit,
           skipLineNum: nodeVariables.skipLineNum
         }).then((res: any) => {
-          if (res.message) {
-            nodeVariables.logRef += res.message
+          nodeVariables.logRef += res.message || ''
+          if (res && res.message !== '') {
             nodeVariables.limit += 1000
             nodeVariables.skipLineNum += res.lineNum
-            getLogs()
+            getLogs(logTimer)
           } else {
             nodeVariables.logLoadingRef = false
+            if (logTimer !== 0) {
+              if (typeof getLogsID === 'number') {
+                clearTimeout(getLogsID)
+              }
+              getLogsID = setTimeout(() => {
+                nodeVariables.limit += 1000
+                nodeVariables.skipLineNum += 1000
+                getLogs(logTimer)
+              }, logTimer * 1000)
+            }
           }
         }),
         {}
@@ -258,11 +283,30 @@ export default defineComponent({
       return state
     }
 
-    const refreshLogs = () => {
+    const refreshLogs = (logTimer: number) => {
       nodeVariables.logRef = ''
       nodeVariables.limit = 1000
       nodeVariables.skipLineNum = 0
-      getLogs()
+      getLogs(logTimer)
+    }
+
+    const handleExecuteTask = (
+      startNodeList: number,
+      taskDependType: string
+    ) => {
+      executeTask(
+        {
+          workflowInstanceId: Number(route.params.id),
+          startNodeList: startNodeList,
+          taskDependType: taskDependType
+        },
+        props.projectCode
+      ).then(() => {
+        window.$message.success(t('project.workflow.success'))
+        setTimeout(() => {
+          window.location.reload()
+        }, 1000)
+      })
     }
 
     const downloadLogs = () => {
@@ -283,6 +327,14 @@ export default defineComponent({
         refreshTaskStatus()
       }
     }
+
+    const dependenciesData = reactive({
+      showRef: ref(false),
+      taskLinks: ref([]),
+      required: ref(false),
+      tip: ref(''),
+      action: () => {}
+    })
 
     watch(
       () => props.definition,
@@ -324,6 +376,7 @@ export default defineComponent({
           onSaveModelToggle={saveModelToggle}
           onRemoveTasks={removeTasks}
           onRefresh={refreshTaskStatus}
+          v-model:dependenciesData={dependenciesData}
         />
         <div class={Styles.content}>
           <DagSidebar onDragStart={onDragStart} />
@@ -339,7 +392,7 @@ export default defineComponent({
         {!!props.definition && (
           <VersionModal
             isInstance={!!props.instance}
-            v-model:row={props.definition.processDefinition}
+            v-model:row={props.definition.workflowDefinition}
             v-model:show={versionModalShow.value}
             onUpdateList={refreshDetail}
           />
@@ -354,16 +407,17 @@ export default defineComponent({
           readonly={props.readonly}
           show={taskModalVisible.value}
           projectCode={props.projectCode}
-          processInstance={props.instance}
+          workflowInstance={props.instance}
           taskInstance={currentTaskInstance.value}
           onViewLog={handleViewLog}
           data={currTask.value as any}
-          definition={processDefinition}
+          definition={workflowDefinition}
           onSubmit={taskConfirm}
           onCancel={taskCancel}
         />
         <ContextMenuItem
           startDisplay={startDisplay.value}
+          executeTaskDisplay={executeTaskDisplay.value}
           menuDisplay={menuDisplay.value}
           taskInstance={taskInstance.value}
           cell={nodeVariables.menuCell as Cell}
@@ -376,10 +430,19 @@ export default defineComponent({
           onCopyTask={copyTask}
           onRemoveTasks={removeTasks}
           onViewLog={handleViewLog}
+          onExecuteTask={handleExecuteTask}
+          v-model:dependenciesData={dependenciesData}
+        />
+        <DependenciesModal
+          v-model:show={dependenciesData.showRef}
+          v-model:taskLinks={dependenciesData.taskLinks}
+          required={dependenciesData.required}
+          content={dependenciesData.tip}
+          onConfirm={dependenciesData.action}
         />
         {!!props.definition && (
           <StartModal
-            v-model:row={props.definition.processDefinition}
+            v-model:row={props.definition.workflowDefinition}
             v-model:show={nodeVariables.startModalShow}
             taskCode={nodeVariables.taskCode}
           />

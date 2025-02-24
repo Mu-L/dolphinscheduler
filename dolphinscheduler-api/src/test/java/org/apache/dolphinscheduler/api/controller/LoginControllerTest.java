@@ -17,22 +17,33 @@
 
 package org.apache.dolphinscheduler.api.controller;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.utils.Result;
-import org.apache.dolphinscheduler.common.Constants;
+import org.apache.dolphinscheduler.common.constants.Constants;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
+import org.apache.dolphinscheduler.dao.entity.Session;
+import org.apache.dolphinscheduler.dao.repository.SessionDao;
 
+import org.apache.http.HttpStatus;
+
+import java.util.Date;
 import java.util.Map;
 
-import org.junit.Assert;
-import org.junit.Test;
+import javax.servlet.http.Cookie;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -41,7 +52,11 @@ import org.springframework.util.MultiValueMap;
  * login controller test
  */
 public class LoginControllerTest extends AbstractControllerTest {
+
     private static final Logger logger = LoggerFactory.getLogger(LoginControllerTest.class);
+
+    @Autowired
+    private SessionDao sessionDao;
 
     @Test
     public void testLogin() throws Exception {
@@ -56,11 +71,11 @@ public class LoginControllerTest extends AbstractControllerTest {
                 .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assert.assertEquals(Status.SUCCESS.getCode(),result.getCode().intValue());
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
         logger.info(mvcResult.getResponse().getContentAsString());
         Map<String, String> data = (Map<String, String>) result.getData();
-        Assert.assertEquals(Constants.SECURITY_CONFIG_TYPE_PASSWORD,data.get(Constants.SECURITY_CONFIG_TYPE));
-        Assert.assertNotEquals(Constants.SECURITY_CONFIG_TYPE_LDAP,data.get(Constants.SECURITY_CONFIG_TYPE));
+        Assertions.assertEquals(Constants.SECURITY_CONFIG_TYPE_PASSWORD, data.get(Constants.SECURITY_CONFIG_TYPE));
+        Assertions.assertNotEquals(Constants.SECURITY_CONFIG_TYPE_LDAP, data.get(Constants.SECURITY_CONFIG_TYPE));
     }
 
     @Test
@@ -75,7 +90,43 @@ public class LoginControllerTest extends AbstractControllerTest {
                 .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assert.assertEquals(Status.SUCCESS.getCode(),result.getCode().intValue());
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
         logger.info(mvcResult.getResponse().getContentAsString());
+    }
+
+    @Test
+    void testSignOutWithExpireSession() throws Exception {
+        final Session session = sessionDao.queryById(sessionId);
+        session.setLastLoginTime(new Date(System.currentTimeMillis() - Constants.SESSION_TIME_OUT * 1000 - 1));
+        sessionDao.updateById(session);
+
+        mockMvc.perform(post("/signOut")
+                .header("sessionId", sessionId))
+                .andExpect(status().is(HttpStatus.SC_UNAUTHORIZED))
+                .andReturn();
+    }
+
+    @Test
+    void testClearCookie() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(delete("/cookies")
+                .header("sessionId", sessionId)
+                .cookie(new Cookie("sessionId", sessionId)))
+                .andExpect(status().isOk())
+                .andReturn();
+        MockHttpServletResponse response = mvcResult.getResponse();
+        Cookie[] cookies = response.getCookies();
+        for (Cookie cookie : cookies) {
+            Assertions.assertEquals(0, cookie.getMaxAge());
+            Assertions.assertNull(cookie.getValue());
+        }
+    }
+
+    @Test
+    void testGetOauth2Provider() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/oauth2-provider"))
+                .andExpect(status().isOk())
+                .andReturn();
+        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
     }
 }

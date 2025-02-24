@@ -23,45 +23,61 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
-import org.springframework.cache.annotation.CacheConfig;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
 /**
  * scheduler mapper interface
  */
-@CacheConfig(cacheNames = "schedule", keyGenerator = "cacheKeyGenerator")
 public interface ScheduleMapper extends BaseMapper<Schedule> {
 
-    @CacheEvict(key = "#p0.processDefinitionCode")
     int insert(Schedule entity);
 
-    @CacheEvict(key = "#p0.processDefinitionCode")
     int updateById(@Param("et") Schedule entity);
 
     /**
      * query schedule list by process definition code
      *
-     * @param processDefinitionCode processDefinitionCode
+     * @param workflowDefinitionCode workflowDefinitionCode
      * @return schedule list
      */
-    @Cacheable(sync = true)
-    List<Schedule> queryReleaseSchedulerListByProcessDefinitionCode(@Param("processDefinitionCode") long processDefinitionCode);
+    List<Schedule> queryReleaseSchedulerListByWorkflowDefinitionCode(@Param("workflowDefinitionCode") long workflowDefinitionCode);
 
     /**
      * scheduler page
      *
      * @param page page
-     * @param processDefinitionCode processDefinitionCode
+     * @param workflowDefinitionCode workflowDefinitionCode
      * @param searchVal searchVal
      * @return scheduler IPage
      */
-    IPage<Schedule> queryByProcessDefineCodePaging(IPage<Schedule> page,
-                                                   @Param("processDefinitionCode") long processDefinitionCode,
-                                                   @Param("searchVal") String searchVal);
+    IPage<Schedule> queryByWorkflowDefinitionCodePaging(IPage<Schedule> page,
+                                                        @Param("workflowDefinitionCode") long workflowDefinitionCode,
+                                                        @Param("searchVal") String searchVal);
+
+    /**
+     * scheduler page
+     *
+     * @param page page
+     * @param projectCode projectCode
+     * @param workflowDefinitionCode workflowDefinitionCode
+     * @param searchVal searchVal
+     * @return scheduler IPage
+     */
+    IPage<Schedule> queryByProjectAndWorkflowDefinitionCodePaging(IPage<Schedule> page,
+                                                                  @Param("projectCode") long projectCode,
+                                                                  @Param("workflowDefinitionCode") long workflowDefinitionCode,
+                                                                  @Param("searchVal") String searchVal);
+
+    /**
+     * Filter schedule
+     *
+     * @param page page
+     * @param schedule schedule
+     * @return schedule IPage
+     */
+    IPage<Schedule> filterSchedules(IPage<Schedule> page,
+                                    @Param("schedule") Schedule schedule);
 
     /**
      * query schedule list by project name
@@ -74,24 +90,32 @@ public interface ScheduleMapper extends BaseMapper<Schedule> {
     /**
      * query schedule list by process definition codes
      *
-     * @param processDefineCodes processDefineCodes
+     * @param workflowDefinitionCodes workflowDefinitionCodes
      * @return schedule list
      */
-    List<Schedule> selectAllByProcessDefineArray(@Param("processDefineCodes") long[] processDefineCodes);
+    List<Schedule> selectAllByWorkflowDefinitionArray(@Param("workflowDefinitionCodes") long[] workflowDefinitionCodes);
 
     /**
      * query schedule list by process definition code
      *
-     * @param processDefinitionCode processDefinitionCode
+     * @param workflowDefinitionCode workflowDefinitionCode
      * @return schedule
      */
-    Schedule queryByProcessDefinitionCode(@Param("processDefinitionCode") long processDefinitionCode);
+    Schedule queryByWorkflowDefinitionCode(@Param("workflowDefinitionCode") long workflowDefinitionCode);
 
     /**
      * query worker group list by process definition code
      *
-     * @param processDefinitionCodeList processDefinitionCodeList
+     * @param workflowDefinitionCodeList workflowDefinitionCodeList
      * @return schedule
      */
-    List<Schedule> querySchedulesByProcessDefinitionCodes(@Param("processDefinitionCodeList") List<Long> processDefinitionCodeList);
+    List<Schedule> querySchedulesByWorkflowDefinitionCodes(@Param("workflowDefinitionCodeList") List<Long> workflowDefinitionCodeList);
+
+    /**
+     * query schedule by tenant
+     *
+     * @param tenantCode tenantCode
+     * @return schedule list
+     */
+    List<Schedule> queryScheduleListByTenant(@Param("tenantCode") String tenantCode);
 }

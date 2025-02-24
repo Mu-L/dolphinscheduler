@@ -34,7 +34,6 @@ import { useModal } from './use-modal'
 import {
   NForm,
   NFormItem,
-  NButton,
   NIcon,
   NInput,
   NSpace,
@@ -44,16 +43,16 @@ import {
   NSwitch,
   NCheckbox,
   NDatePicker,
-  NRadioButton
+  NRadioButton,
+  NInputNumber,
+  NDynamicInput,
+  NGrid,
+  NGridItem
 } from 'naive-ui'
-import {
-  ArrowDownOutlined,
-  ArrowUpOutlined,
-  DeleteOutlined,
-  PlusCircleOutlined
-} from '@vicons/antd'
+import { ArrowDownOutlined, ArrowUpOutlined } from '@vicons/antd'
 import { IDefinitionData } from '../types'
 import styles from '../index.module.scss'
+import { queryProjectPreferenceByProjectCode } from '@/service/modules/projects-preference'
 
 const props = {
   row: {
@@ -74,7 +73,6 @@ export default defineComponent({
   props,
   emits: ['update:show', 'update:row', 'updateList'],
   setup(props, ctx) {
-    const parallelismRef = ref(false)
     const { t } = useI18n()
     const route = useRoute()
     const { startState } = useForm()
@@ -82,6 +80,7 @@ export default defineComponent({
       variables,
       handleStartDefinition,
       getWorkerGroups,
+      getTenantList,
       getAlertGroups,
       getEnvironmentList,
       getStartParamsList
@@ -92,7 +91,7 @@ export default defineComponent({
     }
 
     const handleStart = () => {
-      handleStartDefinition(props.row.code)
+      handleStartDefinition(props.row.code, props.row.version)
     }
 
     const generalWarningTypeListOptions = () => [
@@ -171,6 +170,85 @@ export default defineComponent({
       ]
     }
 
+    const projectPreferences = ref({} as any)
+
+    const initProjectPreferences = async (projectCode: number) => {
+      if (projectCode) {
+        await queryProjectPreferenceByProjectCode(projectCode).then(
+          (result: any) => {
+            if (result?.preferences && result.state === 1) {
+              projectPreferences.value = JSON.parse(result.preferences)
+            }
+          }
+        )
+      }
+    }
+
+    const containValueInOptions = (
+      options: Array<any>,
+      findingValue: string
+    ): boolean => {
+      for (const { value } of options) {
+        if (findingValue === value) {
+          return true
+        }
+      }
+      return false
+    }
+
+    const restructureForm = async (form: any) => {
+      await initProjectPreferences(props.row.projectCode)
+      if (projectPreferences.value?.taskPriority) {
+        form.workflowInstancePriority = projectPreferences.value.taskPriority
+      }
+      if (projectPreferences.value?.warningType) {
+        form.warningType = projectPreferences.value.warningType
+      }
+      if (projectPreferences.value?.workerGroup) {
+        if (
+          containValueInOptions(
+            variables.workerGroups,
+            projectPreferences.value.workerGroup
+          )
+        ) {
+          form.workerGroup = projectPreferences.value.workerGroup
+        }
+      }
+      if (projectPreferences.value?.tenant) {
+        if (
+          containValueInOptions(
+            variables.tenantList,
+            projectPreferences.value.tenant
+          )
+        ) {
+          form.tenantCode = projectPreferences.value.tenant
+        }
+      }
+      if (
+        projectPreferences.value?.environmentCode &&
+        variables?.environmentList
+      ) {
+        if (
+          containValueInOptions(
+            variables.environmentList,
+            projectPreferences.value.environmentCode
+          )
+        ) {
+          form.environmentCode = projectPreferences.value.environmentCode
+        }
+      }
+      if (projectPreferences.value?.alertGroups && variables?.alertGroups) {
+        if (
+          containValueInOptions(
+            variables.alertGroups,
+            projectPreferences.value.alertGroups
+          )
+        ) {
+          form.warningGroupId = projectPreferences.value.alertGroups
+        }
+      }
+    }
+
     const updateWorkerGroup = () => {
       startState.startForm.environmentCode = null
     }
@@ -195,6 +273,7 @@ export default defineComponent({
 
     onMounted(() => {
       getWorkerGroups()
+      getTenantList()
       getAlertGroups()
       getEnvironmentList()
     })
@@ -204,6 +283,7 @@ export default defineComponent({
       () => {
         if (props.show) {
           getStartParamsList(props.row.code)
+          restructureForm(startState.startForm)
           if (props.taskCode)
             startState.startForm.startNodeList = props.taskCode
         }
@@ -213,7 +293,6 @@ export default defineComponent({
     return {
       t,
       showTaskDependType,
-      parallelismRef,
       hideModal,
       handleStart,
       generalWarningTypeListOptions,
@@ -291,14 +370,29 @@ export default defineComponent({
               v-model:value={this.startForm.warningType}
             />
           </NFormItem>
+          {this.startForm.warningType !== 'NONE' && (
+            <NFormItem
+              label={t('project.workflow.alarm_group')}
+              path='warningGroupId'
+              required
+            >
+              <NSelect
+                options={this.alertGroups}
+                placeholder={t('project.workflow.please_choose')}
+                v-model:value={this.startForm.warningGroupId}
+                clearable
+                filterable
+              />
+            </NFormItem>
+          )}
           <NFormItem
             label={t('project.workflow.workflow_priority')}
-            path='processInstancePriority'
+            path='workflowInstancePriority'
           >
             <NSelect
               options={this.generalPriorityList()}
               renderLabel={this.renderLabel}
-              v-model:value={this.startForm.processInstancePriority}
+              v-model:value={this.startForm.workflowInstancePriority}
             />
           </NFormItem>
           <NFormItem
@@ -309,8 +403,20 @@ export default defineComponent({
               options={this.workerGroups}
               onUpdateValue={this.updateWorkerGroup}
               v-model:value={this.startForm.workerGroup}
+              filterable
             />
           </NFormItem>
+          <NFormItem
+            label={t('project.workflow.tenant_code')}
+            path='tenantCode'
+          >
+            <NSelect
+              options={this.tenantList}
+              v-model:value={this.startForm.tenantCode}
+              filterable
+            />
+          </NFormItem>
+
           <NFormItem
             label={t('project.workflow.environment_name')}
             path='environmentCode'
@@ -321,17 +427,7 @@ export default defineComponent({
               )}
               v-model:value={this.startForm.environmentCode}
               clearable
-            />
-          </NFormItem>
-          <NFormItem
-            label={t('project.workflow.alarm_group')}
-            path='warningGroupId'
-          >
-            <NSelect
-              options={this.alertGroups}
-              placeholder={t('project.workflow.please_choose')}
-              v-model:value={this.startForm.warningGroupId}
-              clearable
+              filterable
             />
           </NFormItem>
           <NFormItem
@@ -366,6 +462,25 @@ export default defineComponent({
                     </NSpace>
                   </NRadioGroup>
                 </NFormItem>
+                {this.startForm.complementDependentMode === 'ALL_DEPENDENT' && (
+                  <NFormItem
+                    label={t('project.workflow.all_level_dependent')}
+                    path='allLevelDependent'
+                  >
+                    <NRadioGroup
+                      v-model:value={this.startForm.allLevelDependent}
+                    >
+                      <NSpace>
+                        <NRadio value={'false'}>
+                          {t('project.workflow.close')}
+                        </NRadio>
+                        <NRadio value={'true'}>
+                          {t('project.workflow.open')}
+                        </NRadio>
+                      </NSpace>
+                    </NRadioGroup>
+                  </NFormItem>
+                )}
                 <NFormItem
                   label={t('project.workflow.mode_of_execution')}
                   path='runMode'
@@ -385,20 +500,38 @@ export default defineComponent({
                   <NFormItem
                     label={t('project.workflow.parallelism')}
                     path='expectedParallelismNumber'
+                    feedback={t(
+                      'project.workflow.warning_too_large_parallelism_number'
+                    )}
+                    validationStatus={'warning'}
+                    showFeedback={
+                      parseInt(this.startForm.expectedParallelismNumber) > 10
+                    }
                   >
-                    <NCheckbox v-model:checked={this.parallelismRef}>
-                      {t('project.workflow.custom_parallelism')}
-                    </NCheckbox>
-                    <NInput
-                      allowInput={this.trim}
-                      disabled={!this.parallelismRef}
+                    <NInputNumber
                       placeholder={t(
                         'project.workflow.please_enter_parallelism'
                       )}
                       v-model:value={this.startForm.expectedParallelismNumber}
+                      min='1'
                     />
                   </NFormItem>
                 )}
+                <NFormItem
+                  label={t('project.workflow.order_of_execution')}
+                  path='executionOrder'
+                >
+                  <NRadioGroup v-model:value={this.startForm.executionOrder}>
+                    <NSpace>
+                      <NRadio value={'DESC_ORDER'}>
+                        {t('project.workflow.descending_order')}
+                      </NRadio>
+                      <NRadio value={'ASC_ORDER'}>
+                        {t('project.workflow.ascending_order')}
+                      </NRadio>
+                    </NSpace>
+                  </NRadioGroup>
+                </NFormItem>
                 <NFormItem
                   label={t('project.workflow.schedule_date')}
                   path={
@@ -444,50 +577,72 @@ export default defineComponent({
             label={t('project.workflow.startup_parameter')}
             path='startup_parameter'
           >
-            {this.startParamsList.length === 0 ? (
-              <NButton text type='primary' onClick={this.addStartParams}>
-                <NIcon>
-                  <PlusCircleOutlined />
-                </NIcon>
-              </NButton>
-            ) : (
-              <NSpace vertical>
-                {this.startParamsList.map((item, index) => (
-                  <NSpace class={styles.startup} key={Date.now() + index}>
-                    <NInput
-                      allowInput={this.trim}
-                      pair
-                      separator=':'
-                      placeholder={['prop', 'value']}
-                      defaultValue={[item.prop, item.value]}
-                      onUpdateValue={(param) =>
-                        this.updateParamsList(index, param)
-                      }
-                    />
-                    <NButton
-                      text
-                      type='error'
-                      onClick={() => this.removeStartParams(index)}
-                      class='btn-delete-custom-parameter'
-                    >
-                      <NIcon>
-                        <DeleteOutlined />
-                      </NIcon>
-                    </NButton>
-                    <NButton
-                      text
-                      type='primary'
-                      onClick={this.addStartParams}
-                      class='btn-create-custom-parameter'
-                    >
-                      <NIcon>
-                        <PlusCircleOutlined />
-                      </NIcon>
-                    </NButton>
-                  </NSpace>
-                ))}
-              </NSpace>
-            )}
+            <NDynamicInput
+              v-model:value={this.startParamsList}
+              onCreate={() => {
+                return {
+                  key: '',
+                  direct: 'IN',
+                  type: 'VARCHAR',
+                  value: ''
+                }
+              }}
+              class='input-startup-params'
+            >
+              {{
+                default: (param: {
+                  value: {
+                    prop: string
+                    direct: string
+                    type: string
+                    value: string
+                  }
+                }) => (
+                  <NGrid xGap={12} cols={24}>
+                    <NGridItem span={6}>
+                      <NInput
+                        v-model:value={param.value.prop}
+                        placeholder={t('project.dag.key')}
+                      />
+                    </NGridItem>
+                    <NGridItem span={5}>
+                      <NSelect
+                        options={[
+                          { value: 'IN', label: 'IN' },
+                          { value: 'OUT', label: 'OUT' }
+                        ]}
+                        v-model:value={param.value.direct}
+                        defaultValue={'IN'}
+                      />
+                    </NGridItem>
+                    <NGridItem span={7}>
+                      <NSelect
+                        options={[
+                          { value: 'VARCHAR', label: 'VARCHAR' },
+                          { value: 'INTEGER', label: 'INTEGER' },
+                          { value: 'LONG', label: 'LONG' },
+                          { value: 'FLOAT', label: 'FLOAT' },
+                          { value: 'DOUBLE', label: 'DOUBLE' },
+                          { value: 'DATE', label: 'DATE' },
+                          { value: 'TIME', label: 'TIME' },
+                          { value: 'BOOLEAN', label: 'BOOLEAN' },
+                          { value: 'LIST', label: 'LIST' },
+                          { value: 'FILE', label: 'FILE' }
+                        ]}
+                        v-model:value={param.value.type}
+                        defaultValue={'VARCHAR'}
+                      />
+                    </NGridItem>
+                    <NGridItem span={6}>
+                      <NInput
+                        v-model:value={param.value.value}
+                        placeholder={t('project.dag.value')}
+                      />
+                    </NGridItem>
+                  </NGrid>
+                )
+              }}
+            </NDynamicInput>
           </NFormItem>
           <NFormItem
             label={t('project.workflow.whether_dry_run')}

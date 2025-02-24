@@ -17,84 +17,61 @@
 
 package org.apache.dolphinscheduler.server.master.config;
 
-import lombok.Data;
 import org.apache.dolphinscheduler.common.utils.NetUtils;
-import org.apache.dolphinscheduler.registry.api.ConnectStrategyProperties;
-import org.apache.dolphinscheduler.server.master.dispatch.host.assign.HostSelector;
-import org.apache.dolphinscheduler.server.master.processor.queue.TaskExecuteRunnable;
-import org.apache.dolphinscheduler.server.master.runner.WorkflowExecuteRunnable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.dolphinscheduler.registry.api.enums.RegistryNodeType;
+import org.apache.dolphinscheduler.server.master.cluster.loadbalancer.WorkerLoadBalancerConfigurationProperties;
+
+import org.apache.commons.lang3.StringUtils;
+
+import java.time.Duration;
+
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 import org.springframework.validation.annotation.Validated;
 
-import java.time.Duration;
-
-import static org.apache.dolphinscheduler.common.Constants.REGISTRY_DOLPHINSCHEDULER_MASTERS;
-
 @Data
 @Validated
 @Configuration
 @ConfigurationProperties(prefix = "master")
+@Slf4j
 public class MasterConfig implements Validator {
-
-    private Logger logger = LoggerFactory.getLogger(MasterConfig.class);
 
     /**
      * The master RPC server listen port.
      */
     private int listenPort = 5678;
-    /**
-     * The max batch size used to fetch command from database.
-     */
-    private int fetchCommandNum = 10;
-    /**
-     * The thread number used to prepare processInstance. This number shouldn't bigger than fetchCommandNum.
-     */
-    private int preExecThreads = 10;
-    /**
-     * todo: We may need to split the process/task into different thread size.
-     * The thread number used to handle processInstance and task event.
-     * Will create two thread poll to execute {@link WorkflowExecuteRunnable} and {@link TaskExecuteRunnable}.
-     */
-    private int execThreads = 10;
-    /**
-     * The task dispatch thread pool size.
-     */
-    private int dispatchTaskNumber = 3;
-    /**
-     * Worker select strategy.
-     */
-    private HostSelector hostSelector = HostSelector.LOWER_WEIGHT;
+
+    private int workflowEventBusFireThreadCount = Runtime.getRuntime().availableProcessors() * 2 + 1;
+
+    private LogicTaskConfig logicTaskConfig = new LogicTaskConfig();
+
     /**
      * Master heart beat task execute interval.
      */
-    private Duration heartbeatInterval = Duration.ofSeconds(10);
-    /**
-     * task submit max retry times.
-     */
-    private int taskCommitRetryTimes = 5;
-    /**
-     * task submit retry interval.
-     */
-    private Duration taskCommitInterval = Duration.ofSeconds(1);
-    /**
-     * state wheel check interval, if this value is bigger, may increase the delay of task/processInstance.
-     */
-    private Duration stateWheelInterval = Duration.ofMillis(5);
-    private double maxCpuLoadAvg = -1;
-    private double reservedMemory = 0.3;
-    private Duration failoverInterval = Duration.ofMinutes(10);
-    private boolean killYarnJobWhenTaskFailover = true;
-    private ConnectStrategyProperties registryDisconnectStrategy = new ConnectStrategyProperties();
+    private Duration maxHeartbeatInterval = Duration.ofSeconds(10);
 
-    // ip:listenPort
+    private MasterServerLoadProtection serverLoadProtection = new MasterServerLoadProtection();
+
+    private Duration workerGroupRefreshInterval = Duration.ofMinutes(5);
+
+    private CommandFetchStrategy commandFetchStrategy = new CommandFetchStrategy();
+
+    private WorkerLoadBalancerConfigurationProperties workerLoadBalancerConfigurationProperties =
+            new WorkerLoadBalancerConfigurationProperties();
+
+    /**
+     * The IP address and listening port of the master server in the format 'ip:listenPort'.
+     */
     private String masterAddress;
 
-    // /nodes/master/ip:listenPort
+    /**
+     * The registry path for the master server in the format '/nodes/master/ip:listenPort'.
+     */
     private String masterRegistryPath;
 
     @Override
@@ -108,58 +85,44 @@ public class MasterConfig implements Validator {
         if (masterConfig.getListenPort() <= 0) {
             errors.rejectValue("listen-port", null, "is invalidated");
         }
-        if (masterConfig.getFetchCommandNum() <= 0) {
-            errors.rejectValue("fetch-command-num", null, "should be a positive value");
+
+        if (masterConfig.getWorkflowEventBusFireThreadCount() <= 0) {
+            errors.rejectValue("workflow-event-bus-fire-thread-count", null, "should be a positive value");
         }
-        if (masterConfig.getPreExecThreads() <= 0) {
-            errors.rejectValue("per-exec-threads", null, "should be a positive value");
+
+        if (masterConfig.getMaxHeartbeatInterval().toMillis() < 0) {
+            errors.rejectValue("max-heartbeat-interval", null, "should be a valid duration");
         }
-        if (masterConfig.getExecThreads() <= 0) {
-            errors.rejectValue("exec-threads", null, "should be a positive value");
+
+        if (masterConfig.getWorkerGroupRefreshInterval().getSeconds() < 10) {
+            errors.rejectValue("worker-group-refresh-interval", null, "should >= 10s");
         }
-        if (masterConfig.getDispatchTaskNumber() <= 0) {
-            errors.rejectValue("dispatch-task-number", null, "should be a positive value");
+        if (StringUtils.isEmpty(masterConfig.getMasterAddress())) {
+            masterConfig.setMasterAddress(NetUtils.getAddr(masterConfig.getListenPort()));
         }
-        if (masterConfig.getHeartbeatInterval().toMillis() < 0) {
-            errors.rejectValue("heartbeat-interval", null, "should be a valid duration");
-        }
-        if (masterConfig.getTaskCommitRetryTimes() <= 0) {
-            errors.rejectValue("task-commit-retry-times", null, "should be a positive value");
-        }
-        if (masterConfig.getTaskCommitInterval().toMillis() <= 0) {
-            errors.rejectValue("task-commit-interval", null, "should be a valid duration");
-        }
-        if (masterConfig.getStateWheelInterval().toMillis() <= 0) {
-            errors.rejectValue("state-wheel-interval", null, "should be a valid duration");
-        }
-        if (masterConfig.getFailoverInterval().toMillis() <= 0) {
-            errors.rejectValue("failover-interval", null, "should be a valid duration");
-        }
-        if (masterConfig.getMaxCpuLoadAvg() <= 0) {
-            masterConfig.setMaxCpuLoadAvg(Runtime.getRuntime().availableProcessors() * 2);
-        }
-        masterConfig.setMasterAddress(NetUtils.getAddr(masterConfig.getListenPort()));
-        masterConfig.setMasterRegistryPath(REGISTRY_DOLPHINSCHEDULER_MASTERS + "/" + masterConfig.getMasterAddress());
+        commandFetchStrategy.validate(errors);
+        workerLoadBalancerConfigurationProperties.validate(errors);
+
+        masterConfig.setMasterRegistryPath(
+                RegistryNodeType.MASTER.getRegistryPath() + "/" + masterConfig.getMasterAddress());
         printConfig();
     }
 
     private void printConfig() {
-        logger.info("Master config: listenPort -> {} ", listenPort);
-        logger.info("Master config: fetchCommandNum -> {} ", fetchCommandNum);
-        logger.info("Master config: preExecThreads -> {} ", preExecThreads);
-        logger.info("Master config: execThreads -> {} ", execThreads);
-        logger.info("Master config: dispatchTaskNumber -> {} ", dispatchTaskNumber);
-        logger.info("Master config: hostSelector -> {} ", hostSelector);
-        logger.info("Master config: heartbeatInterval -> {} ", heartbeatInterval);
-        logger.info("Master config: taskCommitRetryTimes -> {} ", taskCommitRetryTimes);
-        logger.info("Master config: taskCommitInterval -> {} ", taskCommitInterval);
-        logger.info("Master config: stateWheelInterval -> {} ", stateWheelInterval);
-        logger.info("Master config: maxCpuLoadAvg -> {} ", maxCpuLoadAvg);
-        logger.info("Master config: reservedMemory -> {} ", reservedMemory);
-        logger.info("Master config: failoverInterval -> {} ", failoverInterval);
-        logger.info("Master config: killYarnJobWhenTaskFailover -> {} ", killYarnJobWhenTaskFailover);
-        logger.info("Master config: registryDisconnectStrategy -> {} ", registryDisconnectStrategy);
-        logger.info("Master config: masterAddress -> {} ", masterAddress);
-        logger.info("Master config: masterRegistryPath -> {} ", masterRegistryPath);
+        String config =
+                "\n****************************Master Configuration**************************************" +
+                        "\n  listen-port -> " + listenPort +
+                        "\n  workflow-event-bus-fire-thread-count -> " + workflowEventBusFireThreadCount +
+                        "\n  logic-task-config -> " + logicTaskConfig +
+                        "\n  max-heartbeat-interval -> " + maxHeartbeatInterval +
+                        "\n  server-load-protection -> " + serverLoadProtection +
+                        "\n  master-address -> " + masterAddress +
+                        "\n  master-registry-path: " + masterRegistryPath +
+                        "\n  worker-group-refresh-interval: " + workerGroupRefreshInterval +
+                        "\n  command-fetch-strategy: " + commandFetchStrategy +
+                        "\n  worker-load-balancer-configuration-properties: "
+                        + workerLoadBalancerConfigurationProperties +
+                        "\n****************************Master Configuration**************************************";
+        log.info(config);
     }
 }

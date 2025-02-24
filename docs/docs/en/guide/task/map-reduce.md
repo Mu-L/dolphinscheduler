@@ -11,7 +11,10 @@ MapReduce(MR) task type used for executing MapReduce programs. For MapReduce nod
 
 ## Task Parameters
 
-- Please refer to [DolphinScheduler Task Parameters Appendix](appendix.md#default-task-parameters) for default parameters.
+[//]: # (TODO: use the commented anchor below once our website template supports this syntax)
+[//]: # (- Please refer to [DolphinScheduler Task Parameters Appendix]&#40;appendix.md#default-task-parameters&#41; `Default Task Parameters` section for default parameters.)
+
+- Please refer to [DolphinScheduler Task Parameters Appendix](appendix.md) `Default Task Parameters` section for default parameters.
 
 ### General
 
@@ -27,6 +30,7 @@ MapReduce(MR) task type used for executing MapReduce programs. For MapReduce nod
 | The class of the main function | The **full path** of Main Class, the entry point of the MapReduce program.                                         |
 | Main jar package               | The jar package of the MapReduce program.                                                                          |
 | Task name                      | MapReduce task name.                                                                                               |
+| Yarn queue                     | Used to set the yarn queue, use `default` queue by default.                                                        |
 | Command line parameters        | Set the input parameters of the MapReduce program and support the substitution of custom parameter variables.      |
 | Other parameters               | Support `-D`, `-files`, `-libjars`, `-archives` format.                                                            |
 | User-defined parameter         | It is a local user-defined parameter for MapReduce, and will replace the content with `${variable}` in the script. |

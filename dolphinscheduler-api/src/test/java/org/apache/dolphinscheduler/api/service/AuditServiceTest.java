@@ -20,25 +20,24 @@ package org.apache.dolphinscheduler.api.service;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.service.impl.AuditServiceImpl;
-import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.common.enums.AuditModelType;
+import org.apache.dolphinscheduler.common.enums.AuditOperationType;
 import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.dao.entity.AuditLog;
-import org.apache.dolphinscheduler.dao.entity.User;
 import org.apache.dolphinscheduler.dao.mapper.AuditLogMapper;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +47,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 /**
  * audit service test
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class AuditServiceTest {
 
     private static final Logger logger = LoggerFactory.getLogger(AuditServiceTest.class);
@@ -67,12 +66,20 @@ public class AuditServiceTest {
         IPage<AuditLog> page = new Page<>(1, 10);
         page.setRecords(getLists());
         page.setTotal(1L);
-        when(auditLogMapper.queryAuditLog(Mockito.any(Page.class), Mockito.any(), Mockito.any(),
-                Mockito.eq(""), eq(start), eq(end)))
-                .thenReturn(page);
-        Result result = auditService.queryLogListPaging(new User(), null, null, "2020-11-01 00:00:00", "2020-11-02 00:00:00", "", 1, 10);
-        logger.info(result.toString());
-        Assert.assertEquals(Status.SUCCESS.getCode(), (int) result.getCode());
+        when(auditLogMapper.queryAuditLog(Mockito.any(Page.class), Mockito.any(), Mockito.any(), Mockito.eq(""),
+                Mockito.eq(""),
+                eq(start), eq(end))).thenReturn(page);
+        Assertions.assertDoesNotThrow(() -> {
+            auditService.queryLogListPaging(
+                    "",
+                    "",
+                    "2020-11-01 00:00:00",
+                    "2020-11-02 00:00:00",
+                    "",
+                    "",
+                    1,
+                    10);
+        });
     }
 
     private List<AuditLog> getLists() {
@@ -84,8 +91,8 @@ public class AuditServiceTest {
     private AuditLog getAuditLog() {
         AuditLog auditLog = new AuditLog();
         auditLog.setUserName("testName");
-        auditLog.setOperation(0);
-        auditLog.setResourceType(0);
+        auditLog.setOperationType(AuditOperationType.CREATE.getName());
+        auditLog.setModelType(AuditModelType.PROJECT.getName());
         return auditLog;
     }
 }

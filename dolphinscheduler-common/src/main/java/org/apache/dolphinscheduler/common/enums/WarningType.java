@@ -29,11 +29,13 @@ import com.google.common.base.Functions;
  * types for whether to send warning when process ends;
  */
 public enum WarningType {
+
     /**
      * 0 do not send warning;
      * 1 send if process success;
      * 2 send if process failed;
      * 3 send if process ends, whatever the result;
+     * 4 send global events;
      */
     NONE(0, "none"),
     SUCCESS(1, "success"),
@@ -58,7 +60,7 @@ public enum WarningType {
     }
 
     private static final Map<String, WarningType> WARNING_TYPE_MAP =
-        Arrays.stream(WarningType.values()).collect(toMap(WarningType::getDescp, Functions.identity()));
+            Arrays.stream(WarningType.values()).collect(toMap(WarningType::getDescp, Functions.identity()));
 
     public static WarningType of(String descp) {
         if (WARNING_TYPE_MAP.containsKey(descp)) {

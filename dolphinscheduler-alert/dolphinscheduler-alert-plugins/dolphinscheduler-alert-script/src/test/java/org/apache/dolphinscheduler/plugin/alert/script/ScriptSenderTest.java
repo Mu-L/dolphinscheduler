@@ -17,14 +17,16 @@
 
 package org.apache.dolphinscheduler.plugin.alert.script;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 import org.apache.dolphinscheduler.alert.api.AlertResult;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * ScriptSenderTest
@@ -35,7 +37,7 @@ public class ScriptSenderTest {
     private static final String shellFilPath = rootPath + "/src/test/script/shell/scriptExample.sh";
     private static Map<String, String> scriptConfig = new HashMap<>();
 
-    @Before
+    @BeforeEach
     public void initScriptConfig() {
 
         scriptConfig.put(ScriptParamsConstants.NAME_SCRIPT_TYPE, String.valueOf(ScriptType.SHELL.getDescp()));
@@ -48,9 +50,9 @@ public class ScriptSenderTest {
         ScriptSender scriptSender = new ScriptSender(scriptConfig);
         AlertResult alertResult;
         alertResult = scriptSender.sendScriptAlert("test title Kris", "test content");
-        Assert.assertEquals("true", alertResult.getStatus());
+        Assertions.assertTrue(alertResult.isSuccess());
         alertResult = scriptSender.sendScriptAlert("error msg title", "test content");
-        Assert.assertEquals("false", alertResult.getStatus());
+        Assertions.assertFalse(alertResult.isSuccess());
     }
 
     @Test
@@ -58,7 +60,44 @@ public class ScriptSenderTest {
         scriptConfig.put(ScriptParamsConstants.NAME_SCRIPT_USER_PARAMS, "' ; calc.exe ; '");
         ScriptSender scriptSender = new ScriptSender(scriptConfig);
         AlertResult alertResult = scriptSender.sendScriptAlert("test title Kris", "test content");
-        Assert.assertEquals("false", alertResult.getStatus());
+        Assertions.assertFalse(alertResult.isSuccess());
+    }
+
+    @Test
+    public void testUserParamsNPE() {
+        scriptConfig.put(ScriptParamsConstants.NAME_SCRIPT_USER_PARAMS, null);
+        ScriptSender scriptSender = new ScriptSender(scriptConfig);
+        AlertResult alertResult;
+        alertResult = scriptSender.sendScriptAlert("test user params NPE", "test content");
+        Assertions.assertTrue(alertResult.isSuccess());
+    }
+
+    @Test
+    public void testPathNPE() {
+        scriptConfig.put(ScriptParamsConstants.NAME_SCRIPT_PATH, null);
+        ScriptSender scriptSender = new ScriptSender(scriptConfig);
+        AlertResult alertResult;
+        alertResult = scriptSender.sendScriptAlert("test path NPE", "test content");
+        Assertions.assertFalse(alertResult.isSuccess());
+    }
+
+    @Test
+    public void testPathError() {
+        scriptConfig.put(ScriptParamsConstants.NAME_SCRIPT_PATH, "/usr/sbin/abc");
+        ScriptSender scriptSender = new ScriptSender(scriptConfig);
+        AlertResult alertResult;
+        alertResult = scriptSender.sendScriptAlert("test path NPE", "test content");
+        assertFalse(alertResult.isSuccess());
+        Assertions.assertTrue(alertResult.getMessage().contains("shell script is invalid, only support .sh file"));
+    }
+
+    @Test
+    public void testTypeIsError() {
+        scriptConfig.put(ScriptParamsConstants.NAME_SCRIPT_TYPE, null);
+        ScriptSender scriptSender = new ScriptSender(scriptConfig);
+        AlertResult alertResult;
+        alertResult = scriptSender.sendScriptAlert("test type is error", "test content");
+        assertFalse(alertResult.isSuccess());
     }
 
 }

@@ -19,14 +19,16 @@ package org.apache.dolphinscheduler.plugin.datasource.presto;
 
 import org.apache.dolphinscheduler.spi.datasource.DataSourceChannel;
 import org.apache.dolphinscheduler.spi.datasource.DataSourceChannelFactory;
+import org.apache.dolphinscheduler.spi.enums.DbType;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(DataSourceChannelFactory.class)
 public class PrestoDataSourceChannelFactory implements DataSourceChannelFactory {
+
     @Override
     public String getName() {
-        return "presto";
+        return DbType.PRESTO.getName();
     }
 
     @Override

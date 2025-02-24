@@ -18,18 +18,18 @@
 package org.apache.dolphinscheduler.plugin.alert.wechat;
 
 public final class WeChatAlertConstants {
+
     static final String MARKDOWN_QUOTE = ">";
 
     static final String MARKDOWN_ENTER = "\n";
-
-    static final String CHARSET = "UTF-8";
 
     static final String WE_CHAT_PUSH_URL = "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={token}";
 
     static final String WE_CHAT_APP_CHAT_PUSH_URL = "https://qyapi.weixin.qq.com/cgi-bin/appchat/send?access_token" +
             "={token}";
 
-    static final String WE_CHAT_TOKEN_URL = "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={corpId}&corpsecret={secret}";
+    static final String WE_CHAT_TOKEN_URL =
+            "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={corpId}&corpsecret={secret}";
 
     static final String WE_CHAT_CONTENT_KEY = "content";
 

@@ -17,9 +17,6 @@
 
 package org.apache.dolphinscheduler.common.exception;
 
-/**
- * exception for store
- */
 public class StorageOperateNoConfiguredException extends RuntimeException {
 
     public StorageOperateNoConfiguredException() {
@@ -37,7 +34,8 @@ public class StorageOperateNoConfiguredException extends RuntimeException {
         super(cause);
     }
 
-    public StorageOperateNoConfiguredException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public StorageOperateNoConfiguredException(String message, Throwable cause, boolean enableSuppression,
+                                               boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 }

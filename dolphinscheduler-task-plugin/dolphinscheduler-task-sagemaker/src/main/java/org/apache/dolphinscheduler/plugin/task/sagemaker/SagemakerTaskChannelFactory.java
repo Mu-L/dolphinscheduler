@@ -19,15 +19,12 @@ package org.apache.dolphinscheduler.plugin.task.sagemaker;
 
 import org.apache.dolphinscheduler.plugin.task.api.TaskChannel;
 import org.apache.dolphinscheduler.plugin.task.api.TaskChannelFactory;
-import org.apache.dolphinscheduler.spi.params.base.PluginParams;
-
-import java.util.Collections;
-import java.util.List;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(TaskChannelFactory.class)
 public class SagemakerTaskChannelFactory implements TaskChannelFactory {
+
     @Override
     public TaskChannel create() {
         return new SagemakerTaskChannel();
@@ -38,8 +35,4 @@ public class SagemakerTaskChannelFactory implements TaskChannelFactory {
         return "SAGEMAKER";
     }
 
-    @Override
-    public List<PluginParams> getParams() {
-        return Collections.emptyList();
-    }
 }

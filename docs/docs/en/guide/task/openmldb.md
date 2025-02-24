@@ -14,7 +14,10 @@ OpenMLDB task plugin used to execute tasks on OpenMLDB cluster.
 
 ## Task Parameters
 
-- Please refer to [DolphinScheduler Task Parameters Appendix](appendix.md#default-task-parameters) for default parameters.
+[//]: # (TODO: use the commented anchor below once our website template supports this syntax)
+[//]: # (- Please refer to [DolphinScheduler Task Parameters Appendix]&#40;appendix.md#default-task-parameters&#41; `Default Task Parameters` section for default parameters.)
+
+- Please refer to [DolphinScheduler Task Parameters Appendix](appendix.md) `Default Task Parameters` section for default parameters.
 
 |   **Parameter**   |                                               **Description**                                                |
 |-------------------|--------------------------------------------------------------------------------------------------------------|
@@ -51,6 +54,6 @@ to a quick start.
 
 The OpenMLDB task will use OpenMLDB Python SDK to connect OpenMLDB cluster. So you should have the Python env.
 
-We will use `python3` by default. You can set `PYTHON_HOME` to use your custom python env.
+We will use `python3` by default. You can set `PYTHON_LAUNCHER` to use your custom python env.
 
 Make sure you have installed OpenMLDB Python SDK in the host where the worker server running, using `pip install openmldb`.

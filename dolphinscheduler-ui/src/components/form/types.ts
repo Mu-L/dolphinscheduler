@@ -22,6 +22,7 @@ type IType =
   | 'radio'
   | 'editor'
   | 'custom-parameters'
+  | 'custom-labels'
   | 'switch'
   | 'input-number'
   | 'select'
@@ -45,10 +46,21 @@ interface IFormItem {
   class?: string
 }
 
-interface IMeta extends Omit<FormProps, 'model'> {
+interface IMeta extends Omit<FormProps, 'model' | 'rules'> {
   elements?: IFormItem[]
   model: object
+  rules: IFormRules
 }
+
+interface IFormItemRule extends Omit<FormItemRule, 'required'> {
+  required?: boolean | Ref<boolean>
+}
+
+type IFormRules =
+  | {
+      [path: string]: IFormItemRule | IFormItemRule[]
+    }
+  | FormRules
 
 interface IJsonItemParams {
   field: string
@@ -56,7 +68,7 @@ interface IJsonItemParams {
   props?: any
   title?: string
   type?: IType
-  validate?: FormItemRule
+  validate?: IFormItemRule
   value?: any
   options?: IOption[] | Ref<IOption[]>
   children?: IJsonItem[]
@@ -65,7 +77,7 @@ interface IJsonItemParams {
   widget?: any
   class?: string
   path?: string
-  rule?: FormItemRule
+  rule?: IFormItemRule
 }
 
 type IJsonItemFn = (i?: number) => IJsonItemParams
@@ -81,5 +93,7 @@ export {
   FormRules,
   IFormItem,
   GridProps,
-  IJsonItemParams
+  IJsonItemParams,
+  IFormItemRule,
+  IFormRules
 }

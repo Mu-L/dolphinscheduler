@@ -18,6 +18,7 @@
 package org.apache.dolphinscheduler.api.service;
 
 import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.dao.entity.Environment;
 import org.apache.dolphinscheduler.dao.entity.User;
 
 import java.util.Map;
@@ -36,7 +37,7 @@ public interface EnvironmentService {
      * @param desc environment desc
      * @param workerGroups worker groups
      */
-    Map<String, Object> createEnvironment(User loginUser, String name, String config, String desc, String workerGroups);
+    Long createEnvironment(User loginUser, String name, String config, String desc, String workerGroups);
 
     /**
      * query environment
@@ -51,7 +52,6 @@ public interface EnvironmentService {
      * @param code environment code
      */
     Map<String, Object> queryEnvironmentByCode(Long code);
-
 
     /**
      * delete environment
@@ -71,7 +71,8 @@ public interface EnvironmentService {
      * @param desc environment desc
      * @param workerGroups worker groups
      */
-    Map<String, Object> updateEnvironmentByCode(User loginUser, Long code, String name, String config, String desc, String workerGroups);
+    Environment updateEnvironmentByCode(User loginUser, Long code, String name, String config, String desc,
+                                        String workerGroups);
 
     /**
      * query environment paging
@@ -100,4 +101,3 @@ public interface EnvironmentService {
     Map<String, Object> verifyEnvironment(String environmentName);
 
 }
-

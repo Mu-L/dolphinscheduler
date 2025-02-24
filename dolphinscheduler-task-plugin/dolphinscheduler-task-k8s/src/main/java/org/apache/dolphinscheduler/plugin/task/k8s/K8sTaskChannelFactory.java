@@ -19,22 +19,15 @@ package org.apache.dolphinscheduler.plugin.task.k8s;
 
 import org.apache.dolphinscheduler.plugin.task.api.TaskChannel;
 import org.apache.dolphinscheduler.plugin.task.api.TaskChannelFactory;
-import org.apache.dolphinscheduler.spi.params.base.PluginParams;
-
-import java.util.List;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(TaskChannelFactory.class)
 public class K8sTaskChannelFactory implements TaskChannelFactory {
+
     @Override
     public String getName() {
         return "K8S";
-    }
-
-    @Override
-    public List<PluginParams> getParams() {
-        return null;
     }
 
     @Override

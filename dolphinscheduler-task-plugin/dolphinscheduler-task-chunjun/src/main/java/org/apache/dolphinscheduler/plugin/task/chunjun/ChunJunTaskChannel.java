@@ -17,23 +17,13 @@
 
 package org.apache.dolphinscheduler.plugin.task.chunjun;
 
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.plugin.task.api.AbstractTask;
 import org.apache.dolphinscheduler.plugin.task.api.TaskChannel;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.AbstractParameters;
-import org.apache.dolphinscheduler.plugin.task.api.parameters.ParametersNode;
-import org.apache.dolphinscheduler.plugin.task.api.parameters.resource.ResourceParametersHelper;
-import org.apache.dolphinscheduler.spi.utils.JSONUtils;
 
-/**
- * chunjun task channel
- */
 public class ChunJunTaskChannel implements TaskChannel {
-
-    @Override
-    public void cancelApplication(boolean status) {
-
-    }
 
     @Override
     public AbstractTask createTask(TaskExecutionContext taskExecutionContext) {
@@ -41,12 +31,8 @@ public class ChunJunTaskChannel implements TaskChannel {
     }
 
     @Override
-    public AbstractParameters parseParameters(ParametersNode parametersNode) {
-        return JSONUtils.parseObject(parametersNode.getTaskParams(), ChunJunParameters.class);
+    public AbstractParameters parseParameters(String taskParams) {
+        return JSONUtils.parseObject(taskParams, ChunJunParameters.class);
     }
 
-    @Override
-    public ResourceParametersHelper getResources(String parameters) {
-        return JSONUtils.parseObject(parameters, ChunJunParameters.class).getResources();
-    }
 }

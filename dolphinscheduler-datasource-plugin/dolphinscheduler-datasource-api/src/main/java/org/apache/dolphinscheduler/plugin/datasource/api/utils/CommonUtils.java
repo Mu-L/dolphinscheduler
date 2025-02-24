@@ -17,25 +17,45 @@
 
 package org.apache.dolphinscheduler.plugin.datasource.api.utils;
 
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.*;
-import static org.apache.dolphinscheduler.spi.utils.Constants.RESOURCE_STORAGE_TYPE;
+import static org.apache.dolphinscheduler.common.constants.Constants.RESOURCE_STORAGE_TYPE;
+import static org.apache.dolphinscheduler.plugin.datasource.api.constants.DataSourceConstants.HADOOP_SECURITY_AUTHENTICATION;
+import static org.apache.dolphinscheduler.plugin.datasource.api.constants.DataSourceConstants.HADOOP_SECURITY_AUTHENTICATION_STARTUP_STATE;
+import static org.apache.dolphinscheduler.plugin.datasource.api.constants.DataSourceConstants.JAVA_SECURITY_KRB5_CONF;
+import static org.apache.dolphinscheduler.plugin.datasource.api.constants.DataSourceConstants.JAVA_SECURITY_KRB5_CONF_PATH;
+import static org.apache.dolphinscheduler.plugin.datasource.api.constants.DataSourceConstants.KERBEROS;
+import static org.apache.dolphinscheduler.plugin.datasource.api.constants.DataSourceConstants.LOGIN_USER_KEY_TAB_PATH;
+import static org.apache.dolphinscheduler.plugin.datasource.api.constants.DataSourceConstants.LOGIN_USER_KEY_TAB_USERNAME;
+import static org.apache.dolphinscheduler.plugin.datasource.api.constants.DataSourceConstants.RESOURCE_UPLOAD_PATH;
 
-import org.apache.dolphinscheduler.spi.enums.ResUploadType;
-import org.apache.dolphinscheduler.spi.utils.PropertyUtils;
-import org.apache.dolphinscheduler.spi.utils.StringUtils;
+import org.apache.dolphinscheduler.common.constants.Constants;
+import org.apache.dolphinscheduler.common.enums.StorageType;
+import org.apache.dolphinscheduler.common.utils.PropertyUtils;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 
 import java.io.IOException;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * common utils
  */
+@Slf4j
 public class CommonUtils {
 
     private CommonUtils() {
         throw new UnsupportedOperationException("Construct CommonUtils");
+    }
+
+    private static final boolean IS_DEVELOP_MODE = PropertyUtils.getBoolean(Constants.DEVELOPMENT_STATE, true);
+
+    /**
+     * @return is develop mode
+     */
+    public static boolean isDevelopMode() {
+        return IS_DEVELOP_MODE;
     }
 
     /**
@@ -45,9 +65,9 @@ public class CommonUtils {
      */
     public static boolean getKerberosStartupState() {
         String resUploadStartupType = PropertyUtils.getUpperCaseString(RESOURCE_STORAGE_TYPE);
-        ResUploadType resUploadType = ResUploadType.valueOf(resUploadStartupType);
+        StorageType storageType = StorageType.valueOf(resUploadStartupType);
         Boolean kerberosStartupState = PropertyUtils.getBoolean(HADOOP_SECURITY_AUTHENTICATION_STARTUP_STATE, false);
-        return resUploadType == ResUploadType.HDFS && kerberosStartupState;
+        return storageType == StorageType.HDFS && kerberosStartupState;
     }
 
     /**
@@ -66,13 +86,14 @@ public class CommonUtils {
     /**
      * load kerberos configuration
      *
-     * @param javaSecurityKrb5Conf javaSecurityKrb5Conf
+     * @param javaSecurityKrb5Conf    javaSecurityKrb5Conf
      * @param loginUserKeytabUsername loginUserKeytabUsername
-     * @param loginUserKeytabPath loginUserKeytabPath
+     * @param loginUserKeytabPath     loginUserKeytabPath
      * @throws IOException errors
      */
-    public static void loadKerberosConf(String javaSecurityKrb5Conf, String loginUserKeytabUsername,
-                                        String loginUserKeytabPath) throws IOException {
+    public static synchronized void loadKerberosConf(String javaSecurityKrb5Conf,
+                                                     String loginUserKeytabUsername,
+                                                     String loginUserKeytabPath) throws IOException {
         Configuration configuration = new Configuration();
         configuration.setClassLoader(configuration.getClass().getClassLoader());
         loadKerberosConf(javaSecurityKrb5Conf, loginUserKeytabUsername, loginUserKeytabPath, configuration);
@@ -102,26 +123,6 @@ public class CommonUtils {
             return true;
         }
         return false;
-    }
-
-    public static String getDataQualityJarName() {
-        String dqsJarName = PropertyUtils.getString(DATA_QUALITY_JAR_NAME);
-
-        if (StringUtils.isEmpty(dqsJarName)) {
-            return "dolphinscheduler-data-quality.jar";
-        }
-
-        return dqsJarName;
-    }
-
-    /**
-     * hdfs udf dir
-     *
-     * @param tenantCode tenant code
-     * @return get udf dir on hdfs
-     */
-    public static String getHdfsUdfDir(String tenantCode) {
-        return String.format("%s/udfs", getHdfsTenantDir(tenantCode));
     }
 
     /**

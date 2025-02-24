@@ -19,14 +19,16 @@ package org.apache.dolphinscheduler.plugin.datasource.postgresql;
 
 import org.apache.dolphinscheduler.spi.datasource.DataSourceChannel;
 import org.apache.dolphinscheduler.spi.datasource.DataSourceChannelFactory;
+import org.apache.dolphinscheduler.spi.enums.DbType;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(DataSourceChannelFactory.class)
 public class PostgreSQLDataSourceChannelFactory implements DataSourceChannelFactory {
+
     @Override
     public String getName() {
-        return "postgresql";
+        return DbType.POSTGRESQL.getName();
     }
 
     @Override

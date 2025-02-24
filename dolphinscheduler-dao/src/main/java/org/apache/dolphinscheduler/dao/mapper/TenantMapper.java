@@ -17,25 +17,19 @@
 
 package org.apache.dolphinscheduler.dao.mapper;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.dolphinscheduler.dao.entity.Tenant;
 
 import org.apache.ibatis.annotations.Param;
 
-import org.springframework.cache.annotation.CacheConfig;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
+import java.util.List;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 /**
  * tenant mapper interface
  */
-@CacheConfig(cacheNames = "tenant", keyGenerator = "cacheKeyGenerator")
 public interface TenantMapper extends BaseMapper<Tenant> {
 
     /**
@@ -44,19 +38,16 @@ public interface TenantMapper extends BaseMapper<Tenant> {
      * @param tenantId tenantId
      * @return tenant
      */
-    @Cacheable(sync = true)
     Tenant queryById(@Param("tenantId") int tenantId);
 
     /**
      * delete by id
      */
-    @CacheEvict
     int deleteById(int id);
 
     /**
      * update
      */
-    @CacheEvict(key = "#p0.id")
     int updateById(@Param("et") Tenant tenant);
 
     /**
@@ -68,13 +59,20 @@ public interface TenantMapper extends BaseMapper<Tenant> {
     Tenant queryByTenantCode(@Param("tenantCode") String tenantCode);
 
     /**
+     * query tenants by queue id
+     *
+     * @param queueId queue id
+     * @return tenant list
+     */
+    List<Tenant> queryTenantListByQueueId(@Param("queueId") Integer queueId);
+    /**
      * tenant page
      *
      * @param page page
      * @param searchVal searchVal
      * @return tenant IPage
      */
-    IPage<Tenant> queryTenantPaging(IPage<Tenant> page,@Param("ids") List<Integer> ids,
+    IPage<Tenant> queryTenantPaging(IPage<Tenant> page, @Param("ids") List<Integer> ids,
                                     @Param("searchVal") String searchVal);
 
     /**
@@ -92,7 +90,8 @@ public interface TenantMapper extends BaseMapper<Tenant> {
      * @param searchVal
      * @return
      */
-    IPage<Tenant> queryTenantPagingByIds(Page<Tenant> page, @Param("ids")List<Integer> ids, @Param("searchVal")String searchVal);
+    IPage<Tenant> queryTenantPagingByIds(Page<Tenant> page, @Param("ids") List<Integer> ids,
+                                         @Param("searchVal") String searchVal);
 
     /**
      * queryAll

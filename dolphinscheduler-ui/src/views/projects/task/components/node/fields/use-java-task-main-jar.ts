@@ -26,7 +26,7 @@ export function useJavaTaskMainJar(model: { [field: string]: any }): IJsonItem {
   const mainJarOptions = ref([] as IMainJar[])
   const taskStore = useTaskNodeStore()
 
-  const mainJarSpan = computed(() => (model.runType === 'JAVA' ? 0 : 24))
+  const mainJarSpan = computed(() => (model.runType === 'FAT_JAR' ? 24 : 0))
   const getMainJars = async (programType: ProgramType) => {
     const storeMainJar = taskStore.getMainJar(programType)
     if (storeMainJar) {
@@ -49,7 +49,7 @@ export function useJavaTaskMainJar(model: { [field: string]: any }): IJsonItem {
   watch(
     () => model.programType,
     (value) => {
-        getMainJars(value)
+      getMainJars(value)
     }
   )
 
@@ -59,12 +59,13 @@ export function useJavaTaskMainJar(model: { [field: string]: any }): IJsonItem {
     name: t('project.node.main_package'),
     span: mainJarSpan,
     props: {
+      checkable: true,
       cascade: true,
       showPath: true,
       checkStrategy: 'child',
       placeholder: t('project.node.main_package_tips'),
-      keyField: 'id',
-      labelField: 'fullName'
+      keyField: 'fullName',
+      labelField: 'name'
     },
     validate: {
       trigger: ['input', 'blur'],

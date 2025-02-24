@@ -24,9 +24,14 @@ import styles from './menu.module.scss'
 import { uuid } from '@/common/common'
 import { IWorkflowTaskInstance } from './types'
 import { NButton } from 'naive-ui'
+import { useDependencies } from '@/views/projects/components/dependencies/use-dependencies'
 
 const props = {
   startDisplay: {
+    type: Boolean as PropType<boolean>,
+    default: false
+  },
+  executeTaskDisplay: {
     type: Boolean as PropType<boolean>,
     default: false
   },
@@ -53,17 +58,36 @@ const props = {
   top: {
     type: Number as PropType<number>,
     default: 0
+  },
+  dependenciesData: {
+    type: Object as PropType<any>,
+    require: false
   }
 }
 
 export default defineComponent({
   name: 'dag-context-menu',
   props,
-  emits: ['hide', 'start', 'edit', 'viewLog', 'copyTask', 'removeTasks'],
+  emits: [
+    'hide',
+    'start',
+    'edit',
+    'viewLog',
+    'copyTask',
+    'removeTasks',
+    'executeTask',
+    'removeTaskInstanceCache'
+  ],
   setup(props, ctx) {
     const graph = inject('graph', ref())
     const route = useRoute()
     const projectCode = Number(route.params.projectCode)
+    const workflowCode = Number(route.params.code)
+    const { t } = useI18n()
+
+    const { getDependentTaskLinksByTask } = useDependencies()
+
+    const dependenciesData = props.dependenciesData
 
     const hide = () => {
       ctx.emit('hide', false)
@@ -83,6 +107,22 @@ export default defineComponent({
       }
     }
 
+    const handleExecuteTaskOnly = () => {
+      ctx.emit('executeTask', Number(props.cell?.id), 'TASK_ONLY')
+    }
+
+    const handleExecuteTaskPOST = () => {
+      if (props.taskInstance) {
+        ctx.emit('executeTask', Number(props.cell?.id), 'TASK_POST')
+      }
+    }
+
+    const handleExecuteTaskPRE = () => {
+      if (props.taskInstance) {
+        ctx.emit('executeTask', Number(props.cell?.id), 'TASK_PRE')
+      }
+    }
+
     const handleCopy = () => {
       const genNums = 1
       const type = props.cell?.data.taskType
@@ -99,9 +139,25 @@ export default defineComponent({
       })
     }
 
-    const handleDelete = () => {
-      graph.value?.removeCell(props.cell)
-      ctx.emit('removeTasks', [Number(props.cell?.id)])
+    const handleDelete = async () => {
+      const taskCode = props.cell?.id
+      const res = await getDependentTaskLinksByTask(
+        projectCode,
+        workflowCode,
+        taskCode
+      )
+      dependenciesData.showRef = false
+      if (res.length > 0) {
+        dependenciesData.showRef = true
+        dependenciesData.taskLinks = res
+        dependenciesData.tip = t(
+          'project.task.delete_validate_dependent_tasks_desc'
+        )
+        dependenciesData.required = true
+      } else {
+        graph.value?.removeCell(props.cell)
+        ctx.emit('removeTasks', [Number(props.cell?.id)])
+      }
     }
 
     onMounted(() => {
@@ -115,7 +171,10 @@ export default defineComponent({
       handleEdit,
       handleCopy,
       handleDelete,
-      handleViewLog
+      handleViewLog,
+      handleExecuteTaskOnly,
+      handleExecuteTaskPOST,
+      handleExecuteTaskPRE
     }
   },
   render() {
@@ -158,12 +217,36 @@ export default defineComponent({
             </>
           )}
           {this.taskInstance && (
-            <NButton
-              class={`${styles['menu-item']}`}
-              onClick={this.handleViewLog}
-            >
-              {t('project.node.view_log')}
-            </NButton>
+            <>
+              <NButton
+                class={`${styles['menu-item']}`}
+                onClick={this.handleViewLog}
+              >
+                {t('project.node.view_log')}
+              </NButton>
+            </>
+          )}
+          {this.executeTaskDisplay && (
+            <>
+              <NButton
+                class={`${styles['menu-item']}`}
+                onClick={this.handleExecuteTaskOnly}
+              >
+                {t('project.workflow.current_node_execution_task')}
+              </NButton>
+              <NButton
+                class={`${styles['menu-item']}`}
+                onClick={this.handleExecuteTaskPOST}
+              >
+                {t('project.workflow.backward_execution_task')}
+              </NButton>
+              <NButton
+                class={`${styles['menu-item']}`}
+                onClick={this.handleExecuteTaskPRE}
+              >
+                {t('project.workflow.forward_execution_task')}
+              </NButton>
+            </>
           )}
         </div>
       )

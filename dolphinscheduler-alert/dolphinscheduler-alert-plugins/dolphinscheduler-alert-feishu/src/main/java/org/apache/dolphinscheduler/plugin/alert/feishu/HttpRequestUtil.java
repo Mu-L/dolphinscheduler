@@ -17,6 +17,8 @@
 
 package org.apache.dolphinscheduler.plugin.alert.feishu;
 
+import org.apache.dolphinscheduler.alert.api.HttpServiceRetryStrategy;
+
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -29,18 +31,21 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
 public final class HttpRequestUtil {
+
     private HttpRequestUtil() {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
-    public static CloseableHttpClient getHttpClient(boolean enableProxy, String proxy, Integer port, String user, String password) {
+    public static CloseableHttpClient getHttpClient(boolean enableProxy, String proxy, Integer port, String user,
+                                                    String password) {
         if (enableProxy) {
             HttpHost httpProxy = new HttpHost(proxy, port);
             CredentialsProvider provider = new BasicCredentialsProvider();
             provider.setCredentials(new AuthScope(httpProxy), new UsernamePasswordCredentials(user, password));
-            return HttpClients.custom().setDefaultCredentialsProvider(provider).build();
+            return HttpClients.custom().setRetryHandler(HttpServiceRetryStrategy.retryStrategy)
+                    .setDefaultCredentialsProvider(provider).build();
         } else {
-            return HttpClients.createDefault();
+            return HttpClients.custom().setRetryHandler(HttpServiceRetryStrategy.retryStrategy).build();
         }
     }
 

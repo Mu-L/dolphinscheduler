@@ -48,6 +48,8 @@ export function useDependent({
     timeoutNotifyStrategy: [],
     timeout: 30,
     timeoutFlag: false,
+    failurePolicy: 'DEPENDENT_FAILURE_FAILURE',
+    checkInterval: 10,
     ...data
   } as INodeData)
 
@@ -58,7 +60,7 @@ export function useDependent({
       Fields.useRunFlag(),
       Fields.useDescription(),
       Fields.useTaskPriority(),
-      Fields.useWorkerGroup(),
+      Fields.useWorkerGroup(projectCode),
       Fields.useEnvironmentName(model, !data?.id),
       ...Fields.useTaskGroup(model, projectCode),
       ...Fields.useFailed(),

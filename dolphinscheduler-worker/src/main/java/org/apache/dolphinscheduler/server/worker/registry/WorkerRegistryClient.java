@@ -17,26 +17,36 @@
 
 package org.apache.dolphinscheduler.server.worker.registry;
 
-import lombok.extern.slf4j.Slf4j;
-import org.apache.dolphinscheduler.common.Constants;
+import static org.apache.dolphinscheduler.common.constants.Constants.SLEEP_TIME_MILLIS;
+
 import org.apache.dolphinscheduler.common.IStoppable;
-import org.apache.dolphinscheduler.common.enums.NodeType;
+import org.apache.dolphinscheduler.common.constants.Constants;
+import org.apache.dolphinscheduler.common.enums.ServerStatus;
+import org.apache.dolphinscheduler.common.model.Server;
 import org.apache.dolphinscheduler.common.model.WorkerHeartBeat;
 import org.apache.dolphinscheduler.common.thread.ThreadUtils;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
-import org.apache.dolphinscheduler.common.utils.NetUtils;
+import org.apache.dolphinscheduler.extract.base.utils.Host;
+import org.apache.dolphinscheduler.meter.metrics.MetricsProvider;
+import org.apache.dolphinscheduler.registry.api.RegistryClient;
 import org.apache.dolphinscheduler.registry.api.RegistryException;
+import org.apache.dolphinscheduler.registry.api.enums.RegistryNodeType;
 import org.apache.dolphinscheduler.server.worker.config.WorkerConfig;
-import org.apache.dolphinscheduler.server.worker.runner.WorkerManagerThread;
+import org.apache.dolphinscheduler.server.worker.executor.PhysicalTaskExecutorContainerProvider;
 import org.apache.dolphinscheduler.server.worker.task.WorkerHeartBeatTask;
-import org.apache.dolphinscheduler.service.registry.RegistryClient;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+
+import org.apache.commons.collections4.CollectionUtils;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
 
-import static org.apache.dolphinscheduler.common.Constants.SLEEP_TIME_MILLIS;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -46,58 +56,66 @@ public class WorkerRegistryClient implements AutoCloseable {
     private WorkerConfig workerConfig;
 
     @Autowired
-    private WorkerManagerThread workerManagerThread;
+    private PhysicalTaskExecutorContainerProvider physicalTaskExecutorContainerDelegator;
 
     @Autowired
     private RegistryClient registryClient;
 
     @Autowired
-    private WorkerConnectStrategy workerConnectStrategy;
+    private MetricsProvider metricsProvider;
 
     private WorkerHeartBeatTask workerHeartBeatTask;
-
 
     @PostConstruct
     public void initWorkRegistry() {
         this.workerHeartBeatTask = new WorkerHeartBeatTask(
                 workerConfig,
+                metricsProvider,
                 registryClient,
-                () -> workerManagerThread.getWaitSubmitQueueSize());
+                physicalTaskExecutorContainerDelegator.getExecutorContainer());
     }
 
     public void start() {
         try {
             registry();
-            registryClient.addConnectionStateListener(
-                    new WorkerConnectionStateListener(workerConfig, registryClient, workerConnectStrategy));
+            registryClient.addConnectionStateListener(new WorkerConnectionStateListener(registryClient));
         } catch (Exception ex) {
             throw new RegistryException("Worker registry client start up error", ex);
         }
     }
 
-    /**
-     * registry
-     */
-    private void registry() {
+    private void registry() throws InterruptedException {
         WorkerHeartBeat workerHeartBeat = workerHeartBeatTask.getHeartBeat();
-
-        for (String workerZKPath : workerConfig.getWorkerGroupRegistryPaths()) {
-            // remove before persist
-            registryClient.remove(workerZKPath);
-            registryClient.persistEphemeral(workerZKPath, JSONUtils.toJsonString(workerHeartBeat));
-            log.info("Worker node: {} registry to ZK {} successfully", workerConfig.getWorkerAddress(), workerZKPath);
+        while (ServerStatus.BUSY.equals(workerHeartBeat.getServerStatus())) {
+            log.warn("Worker node is BUSY: {}", workerHeartBeat);
+            workerHeartBeat = workerHeartBeatTask.getHeartBeat();
+            Thread.sleep(SLEEP_TIME_MILLIS);
         }
+        String workerRegistryPath = workerConfig.getWorkerRegistryPath();
+        // remove before persist
+        registryClient.remove(workerRegistryPath);
+        registryClient.persistEphemeral(workerRegistryPath, JSONUtils.toJsonString(workerHeartBeat));
+        log.info("Worker node: {} registry to registry center {} successfully", workerConfig.getWorkerAddress(),
+                workerRegistryPath);
 
-        while (!registryClient.checkNodeExists(NetUtils.getHost(), NodeType.WORKER)) {
+        while (!registryClient.checkNodeExists(workerConfig.getWorkerAddress(), RegistryNodeType.WORKER)) {
             ThreadUtils.sleep(SLEEP_TIME_MILLIS);
         }
 
         // sleep 1s, waiting master failover remove
         ThreadUtils.sleep(Constants.SLEEP_TIME_MILLIS);
 
-
         workerHeartBeatTask.start();
         log.info("Worker node: {} registry finished", workerConfig.getWorkerAddress());
+    }
+
+    public Optional<Host> getAlertServerAddress() {
+        List<Server> serverList = registryClient.getServerList(RegistryNodeType.ALERT_SERVER);
+        if (CollectionUtils.isEmpty(serverList)) {
+            return Optional.empty();
+        }
+        Server server = serverList.get(0);
+        return Optional.of(new Host(server.getHost(), server.getPort()));
     }
 
     public void setRegistryStoppable(IStoppable stoppable) {
@@ -110,7 +128,10 @@ public class WorkerRegistryClient implements AutoCloseable {
             workerHeartBeatTask.shutdown();
         }
         registryClient.close();
-        log.info("Worker registry client closed");
+        log.info("Closed WorkerRegistryClient");
     }
 
+    public boolean isAvailable() {
+        return registryClient.isConnected();
+    }
 }

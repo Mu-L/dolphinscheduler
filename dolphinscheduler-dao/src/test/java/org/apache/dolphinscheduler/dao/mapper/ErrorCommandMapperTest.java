@@ -17,18 +17,24 @@
 
 package org.apache.dolphinscheduler.dao.mapper;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import org.apache.dolphinscheduler.common.enums.CommandType;
 import org.apache.dolphinscheduler.dao.BaseDaoTest;
 import org.apache.dolphinscheduler.dao.entity.CommandCount;
 import org.apache.dolphinscheduler.dao.entity.ErrorCommand;
-import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
+import org.apache.dolphinscheduler.dao.entity.WorkflowDefinition;
 
 import java.util.Date;
 import java.util.List;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.assertj.core.util.Lists;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 public class ErrorCommandMapperTest extends BaseDaoTest {
 
@@ -36,14 +42,14 @@ public class ErrorCommandMapperTest extends BaseDaoTest {
     private ErrorCommandMapper errorCommandMapper;
 
     @Autowired
-    private ProcessDefinitionMapper processDefinitionMapper;
+    private WorkflowDefinitionMapper workflowDefinitionMapper;
 
     /**
      * insert
      * @return ErrorCommand
      */
     private ErrorCommand insertOne() {
-        //insertOne
+        // insertOne
         ErrorCommand errorCommand = new ErrorCommand();
         errorCommand.setId(10101);
         errorCommand.setCommandType(CommandType.START_PROCESS);
@@ -53,9 +59,17 @@ public class ErrorCommandMapperTest extends BaseDaoTest {
         return errorCommand;
     }
 
-
-
-
+    @Test
+    public void testQueryCommandPageByIds() {
+        ErrorCommand expectedCommand = insertOne();
+        Page<ErrorCommand> page = new Page<>(1, 10);
+        IPage<ErrorCommand> commandIPage = errorCommandMapper.queryErrorCommandPageByIds(page,
+                Lists.newArrayList(expectedCommand.getWorkflowDefinitionCode()));
+        List<ErrorCommand> commandList = commandIPage.getRecords();
+        assertThat(commandList).isNotEmpty();
+        assertThat(commandIPage.getTotal()).isEqualTo(1);
+        assertThat(commandList.get(0).getId()).isEqualTo(expectedCommand.getId());
+    }
 
     /**
      * test query
@@ -64,34 +78,29 @@ public class ErrorCommandMapperTest extends BaseDaoTest {
     public void testQuery() {
         ErrorCommand errorCommand = insertOne();
 
-        ProcessDefinition processDefinition = new ProcessDefinition();
-        processDefinition.setCode(1L);
-        processDefinition.setName("def 1");
-        processDefinition.setProjectCode(1010L);
-        processDefinition.setUserId(101);
-        processDefinition.setUpdateTime(new Date());
-        processDefinition.setCreateTime(new Date());
-        processDefinitionMapper.insert(processDefinition);
+        WorkflowDefinition workflowDefinition = new WorkflowDefinition();
+        workflowDefinition.setCode(1L);
+        workflowDefinition.setName("def 1");
+        workflowDefinition.setProjectCode(1010L);
+        workflowDefinition.setUserId(101);
+        workflowDefinition.setUpdateTime(new Date());
+        workflowDefinition.setCreateTime(new Date());
+        workflowDefinitionMapper.insert(workflowDefinition);
 
-        errorCommand.setProcessDefinitionCode(processDefinition.getCode());
+        errorCommand.setWorkflowDefinitionCode(workflowDefinition.getCode());
         errorCommandMapper.updateById(errorCommand);
 
         List<CommandCount> commandCounts = errorCommandMapper.countCommandState(
                 null,
                 null,
-                new Long[0]
-        );
+                Lists.newArrayList(0L));
 
-        Long[] projectCodeArray = new Long[2];
-        projectCodeArray[0] = processDefinition.getProjectCode();
-        projectCodeArray[1] = 200L;
         List<CommandCount> commandCounts2 = errorCommandMapper.countCommandState(
                 null,
                 null,
-                projectCodeArray
-        );
+                Lists.newArrayList(workflowDefinition.getProjectCode(), 200L));
 
-        Assert.assertNotEquals(commandCounts.size(), 0);
-        Assert.assertNotEquals(commandCounts2.size(), 0);
+        Assertions.assertEquals(0, commandCounts.size());
+        Assertions.assertNotEquals(0, commandCounts2.size());
     }
 }

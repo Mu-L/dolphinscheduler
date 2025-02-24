@@ -17,24 +17,20 @@
 
 package org.apache.dolphinscheduler.dao.mapper;
 
+import org.apache.dolphinscheduler.common.enums.Flag;
 import org.apache.dolphinscheduler.dao.BaseDaoTest;
 import org.apache.dolphinscheduler.dao.entity.TaskGroup;
 
 import java.util.Date;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 public class TaskGroupMapperTest extends BaseDaoTest {
-
-    private static final Logger logger = LoggerFactory.getLogger(TaskGroupMapperTest.class);
 
     @Autowired
     TaskGroupMapper taskGroupMapper;
@@ -47,14 +43,14 @@ public class TaskGroupMapperTest extends BaseDaoTest {
         taskGroup.setName("task group");
         taskGroup.setId(1);
         taskGroup.setUserId(1);
-        taskGroup.setStatus(1);
+        taskGroup.setStatus(Flag.YES);
         taskGroup.setGroupSize(10);
         taskGroup.setDescription("this is a task group");
         Date date = new Date(System.currentTimeMillis());
         taskGroup.setUpdateTime(date);
         taskGroup.setUpdateTime(date);
 
-        int i = taskGroupMapper.insert(taskGroup);
+        taskGroupMapper.insert(taskGroup);
         return taskGroup;
     }
 
@@ -67,7 +63,7 @@ public class TaskGroupMapperTest extends BaseDaoTest {
         taskGroup.setGroupSize(100);
         taskGroup.setUpdateTime(new Date(System.currentTimeMillis()));
         int i = taskGroupMapper.updateById(taskGroup);
-        Assert.assertEquals(i, 1);
+        Assertions.assertEquals(i, 1);
     }
 
     /**
@@ -77,7 +73,7 @@ public class TaskGroupMapperTest extends BaseDaoTest {
     public void testCheckName() {
         TaskGroup taskGroup = insertOne();
         TaskGroup result = taskGroupMapper.queryByName(taskGroup.getUserId(), taskGroup.getName());
-        Assert.assertNotNull(result);
+        Assertions.assertNotNull(result);
     }
 
     /**
@@ -89,9 +85,8 @@ public class TaskGroupMapperTest extends BaseDaoTest {
         Page<TaskGroup> page = new Page(1, 3);
         IPage<TaskGroup> taskGroupIPage = taskGroupMapper.queryTaskGroupPaging(
                 page,
-                Mockito.anyList(),
-                taskGroup.getName(), taskGroup.getStatus());
+                taskGroup.getName(), taskGroup.getStatus().getCode());
 
-        Assert.assertEquals(taskGroupIPage.getTotal(), 1);
+        Assertions.assertEquals(taskGroupIPage.getTotal(), 1);
     }
 }

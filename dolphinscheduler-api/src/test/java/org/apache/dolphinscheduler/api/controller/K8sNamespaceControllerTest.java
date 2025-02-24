@@ -19,7 +19,6 @@ package org.apache.dolphinscheduler.api.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -28,8 +27,8 @@ import org.apache.dolphinscheduler.api.utils.Result;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.dao.entity.User;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -54,13 +53,13 @@ public class K8sNamespaceControllerTest extends AbstractControllerTest {
         paramsMap.add("pageSize", "20");
 
         MvcResult mvcResult = mockMvc.perform(get("/k8s-namespace")
-            .header(SESSION_ID, sessionId)
-            .params(paramsMap))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andReturn();
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assert.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
     }
 
     @Test
@@ -71,33 +70,16 @@ public class K8sNamespaceControllerTest extends AbstractControllerTest {
         paramsMap.add("clusterCode", "0");
 
         MvcResult mvcResult = mockMvc.perform(post("/k8s-namespace")
-            .header(SESSION_ID, sessionId)
-            .params(paramsMap))
-            .andExpect(status().isCreated()) //it can
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andReturn();
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isCreated()) // it can
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assert.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());//because we not have a k8s cluster in test env
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());// because we not have a k8s
+                                                                                       // cluster in test env
         logger.info("create queue return result:{}", mvcResult.getResponse().getContentAsString());
-    }
-
-    @Test
-    public void updateNamespace() throws Exception {
-        MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
-        paramsMap.add("id", "1");
-        paramsMap.add("owner", "owmer1");
-        paramsMap.add("tag", "flink");
-
-        MvcResult mvcResult = mockMvc.perform(put("/k8s-namespace/{id}", 1)
-            .header(SESSION_ID, sessionId)
-            .params(paramsMap))
-            .andExpect(status().isCreated())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andReturn();
-        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assert.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
-        logger.info("update queue return result:{}", mvcResult.getResponse().getContentAsString());
     }
 
     @Test
@@ -110,28 +92,28 @@ public class K8sNamespaceControllerTest extends AbstractControllerTest {
         // success
 
         MvcResult mvcResult = mockMvc.perform(post("/k8s-namespace/verify")
-            .header(SESSION_ID, sessionId)
-            .params(paramsMap))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andReturn();
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assert.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
         logger.info(mvcResult.getResponse().getContentAsString());
         logger.info("verify namespace return result:{}", mvcResult.getResponse().getContentAsString());
 
-        //error
+        // error
         paramsMap.clear();
         paramsMap.add("namespace", null);
         paramsMap.add("clusterCode", "100");
         mvcResult = mockMvc.perform(post("/k8s-namespace/verify")
-            .header(SESSION_ID, sessionId)
-            .params(paramsMap))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andReturn();
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
         result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assert.assertEquals(Status.VERIFY_K8S_NAMESPACE_ERROR.getCode(), result.getCode().intValue());
+        Assertions.assertEquals(Status.VERIFY_K8S_NAMESPACE_ERROR.getCode(), result.getCode().intValue());
         logger.info(mvcResult.getResponse().getContentAsString());
         logger.info("verify namespace return result:{}", mvcResult.getResponse().getContentAsString());
     }
@@ -142,14 +124,15 @@ public class K8sNamespaceControllerTest extends AbstractControllerTest {
         paramsMap.add("id", "1");
 
         MvcResult mvcResult = mockMvc.perform(post("/k8s-namespace/delete")
-            .header(SESSION_ID, sessionId)
-            .params(paramsMap))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andReturn();
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assert.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());//there is no k8s cluster in test env
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());// there is no k8s cluster in
+                                                                                       // test env
         logger.info(mvcResult.getResponse().getContentAsString());
     }
 
@@ -160,14 +143,14 @@ public class K8sNamespaceControllerTest extends AbstractControllerTest {
         paramsMap.add("userId", "1");
 
         MvcResult mvcResult = mockMvc.perform(get("/k8s-namespace/unauth-namespace")
-            .header(SESSION_ID, sessionId)
-            .params(paramsMap))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andReturn();
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assert.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
         logger.info(mvcResult.getResponse().getContentAsString());
     }
 
@@ -177,14 +160,14 @@ public class K8sNamespaceControllerTest extends AbstractControllerTest {
         paramsMap.add("userId", "1");
 
         MvcResult mvcResult = mockMvc.perform(get("/k8s-namespace/authed-namespace")
-            .header(SESSION_ID, sessionId)
-            .params(paramsMap))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andReturn();
+                .header(SESSION_ID, sessionId)
+                .params(paramsMap))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assert.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
         logger.info(mvcResult.getResponse().getContentAsString());
     }
 }

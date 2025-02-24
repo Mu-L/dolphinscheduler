@@ -18,8 +18,7 @@
 import { useFlink } from './use-flink'
 import { useFlinkStream } from './use-flink-stream'
 import { useShell } from './use-shell'
-import { useSubProcess } from './use-sub-process'
-import { usePigeon } from './use-pigeon'
+import { useSubWorkflow } from './use-sub-workflow'
 import { usePython } from './use-python'
 import { useSpark } from './use-spark'
 import { useMr } from './use-mr'
@@ -32,7 +31,6 @@ import { useSwitch } from './use-switch'
 import { useConditions } from './use-conditions'
 import { useDataX } from './use-datax'
 import { useDependent } from './use-dependent'
-import { useDataQuality } from './use-data-quality'
 import { useEmr } from './use-emr'
 import { useZeppelin } from './use-zeppelin'
 import { useK8s } from './use-k8s'
@@ -46,16 +44,22 @@ import { userSagemaker } from './use-sagemaker'
 import { useChunjun } from './use-chunjun'
 import { usePytorch } from './use-pytorch'
 import { useHiveCli } from './use-hive-cli'
+import { useDms } from './use-dms'
+import { useDatasync } from './use-datasync'
+import { useKubeflow } from './use-kubeflow'
+import { useLinkis } from './use-linkis'
+import { useDataFactory } from './use-data-factory'
+import { useRemoteShell } from './use-remote-shell'
+import { useAliyunServerlessSpark } from './use-aliyun-serverless-spark'
 
 export default {
   SHELL: useShell,
-  SUB_PROCESS: useSubProcess,
+  SUB_WORKFLOW: useSubWorkflow,
   PYTHON: usePython,
   SPARK: useSpark,
   MR: useMr,
   FLINK: useFlink,
   HTTP: useHttp,
-  PIGEON: usePigeon,
   SQL: useSql,
   PROCEDURE: useProcedure,
   SQOOP: useSqoop,
@@ -64,7 +68,6 @@ export default {
   CONDITIONS: useConditions,
   DATAX: useDataX,
   DEPENDENT: useDependent,
-  DATA_QUALITY: useDataQuality,
   EMR: useEmr,
   ZEPPELIN: useZeppelin,
   K8S: useK8s,
@@ -78,5 +81,12 @@ export default {
   FLINK_STREAM: useFlinkStream,
   JAVA: useJava,
   PYTORCH: usePytorch,
-  HIVECLI: useHiveCli
+  HIVECLI: useHiveCli,
+  DMS: useDms,
+  DATASYNC: useDatasync,
+  KUBEFLOW: useKubeflow,
+  LINKIS: useLinkis,
+  DATA_FACTORY: useDataFactory,
+  REMOTESHELL: useRemoteShell,
+  ALIYUN_SERVERLESS_SPARK: useAliyunServerlessSpark
 }

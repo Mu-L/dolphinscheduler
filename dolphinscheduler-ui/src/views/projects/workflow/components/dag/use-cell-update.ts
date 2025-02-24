@@ -17,9 +17,9 @@
 
 import type { Ref } from 'vue'
 import type { Graph } from '@antv/x6'
-import type { TaskType } from '@/views/projects/task/constants/task-type'
+import type { TaskType } from '@/store/project/types'
 import type { Coordinate } from './types'
-import { TASK_TYPES_MAP } from '@/views/projects/task/constants/task-type'
+import { TASK_TYPES_MAP } from '@/store/project/task-type'
 import { useCustomCellBuilder } from './dag-hooks'
 import utils from '@/utils'
 import type { Edge } from '@antv/x6'
@@ -49,6 +49,19 @@ export function useCellUpdate(options: Options) {
       node.attr('title/text', truncation)
       node.setData({ taskName: newName })
     }
+  }
+
+  /**
+   * Set the node's fill color by id
+   * @param {string} id
+   * @param {string} color
+   */
+  function setNodeFillColor(id: string, color: string) {
+    const node = graph.value?.getCellById(id)
+    if (!node) {
+      return false
+    }
+    node.attr('rect/fill', color)
   }
 
   /**
@@ -124,6 +137,7 @@ export function useCellUpdate(options: Options) {
 
   return {
     setNodeName,
+    setNodeFillColor,
     setNodeEdge,
     addNode,
     removeNode,

@@ -16,7 +16,7 @@
  */
 export type TaskType =
   | 'SHELL'
-  | 'SUB_PROCESS'
+  | 'SUB_WORKFLOW'
   | 'PROCEDURE'
   | 'SQL'
   | 'SPARK'
@@ -26,10 +26,8 @@ export type TaskType =
   | 'DEPENDENT'
   | 'HTTP'
   | 'DATAX'
-  | 'PIGEON'
   | 'SQOOP'
   | 'CONDITIONS'
-  | 'DATA_QUALITY'
   | 'SWITCH'
   | 'SEATUNNEL'
   | 'EMR'
@@ -46,6 +44,13 @@ export type TaskType =
   | 'FLINK_STREAM'
   | 'PYTORCH'
   | 'HIVECLI'
+  | 'DMS'
+  | 'DATASYNC'
+  | 'KUBEFLOW'
+  | 'LINKIS'
+  | 'DATA_FACTORY'
+  | 'REMOTESHELL'
+  | 'ALIYUN_SERVERLESS_SPARK'
 
 export type TaskExecuteType = 'STREAM' | 'BATCH'
 
@@ -56,8 +61,8 @@ export const TASK_TYPES_MAP = {
   SHELL: {
     alias: 'SHELL'
   },
-  SUB_PROCESS: {
-    alias: 'SUB_PROCESS'
+  SUB_WORKFLOW: {
+    alias: 'SUB_WORKFLOW'
   },
   PROCEDURE: {
     alias: 'PROCEDURE'
@@ -87,19 +92,12 @@ export const TASK_TYPES_MAP = {
   DATAX: {
     alias: 'DataX'
   },
-  PIGEON: {
-    alias: 'PIGEON'
-  },
   SQOOP: {
     alias: 'SQOOP',
     helperLinkDisable: true
   },
   CONDITIONS: {
     alias: 'CONDITIONS'
-  },
-  DATA_QUALITY: {
-    alias: 'DATA_QUALITY',
-    helperLinkDisable: true
   },
   SWITCH: {
     alias: 'SWITCH'
@@ -159,6 +157,34 @@ export const TASK_TYPES_MAP = {
   },
   HIVECLI: {
     alias: 'HIVECLI',
+    helperLinkDisable: true
+  },
+  DMS: {
+    alias: 'DMS',
+    helperLinkDisable: true
+  },
+  DATASYNC: {
+    alias: 'DATASYNC',
+    helperLinkDisable: true
+  },
+  KUBEFLOW: {
+    alias: 'KUBEFLOW',
+    helperLinkDisable: true
+  },
+  LINKIS: {
+    alias: 'LINKIS',
+    helperLinkDisable: true
+  },
+  DATA_FACTORY: {
+    alias: 'DATA_FACTORY',
+    helperLinkDisable: true
+  },
+  REMOTESHELL: {
+    alias: 'REMOTESHELL',
+    helperLinkDisable: true
+  },
+  ALIYUN_SERVERLESS_SPARK: {
+    alias: 'ALIYUN_SERVERLESS_SPARK',
     helperLinkDisable: true
   }
 } as {

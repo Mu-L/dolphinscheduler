@@ -17,18 +17,24 @@
 
 package org.apache.dolphinscheduler.server.worker.task;
 
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.dolphinscheduler.common.Constants;
+import org.apache.dolphinscheduler.common.enums.ServerStatus;
 import org.apache.dolphinscheduler.common.lifecycle.ServerLifeCycleManager;
 import org.apache.dolphinscheduler.common.model.BaseHeartBeatTask;
 import org.apache.dolphinscheduler.common.model.WorkerHeartBeat;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
+import org.apache.dolphinscheduler.common.utils.NetUtils;
 import org.apache.dolphinscheduler.common.utils.OSUtils;
+import org.apache.dolphinscheduler.meter.metrics.MetricsProvider;
+import org.apache.dolphinscheduler.meter.metrics.SystemMetrics;
+import org.apache.dolphinscheduler.registry.api.RegistryClient;
+import org.apache.dolphinscheduler.registry.api.utils.RegistryUtils;
 import org.apache.dolphinscheduler.server.worker.config.WorkerConfig;
-import org.apache.dolphinscheduler.service.registry.RegistryClient;
+import org.apache.dolphinscheduler.server.worker.config.WorkerServerLoadProtection;
+import org.apache.dolphinscheduler.server.worker.metrics.WorkerServerMetrics;
+import org.apache.dolphinscheduler.task.executor.container.ITaskExecutorContainer;
 
-import java.util.function.Supplier;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class WorkerHeartBeatTask extends BaseHeartBeatTask<WorkerHeartBeat> {
@@ -36,74 +42,76 @@ public class WorkerHeartBeatTask extends BaseHeartBeatTask<WorkerHeartBeat> {
     private final WorkerConfig workerConfig;
     private final RegistryClient registryClient;
 
-    private final Supplier<Integer> workerWaitingTaskCount;
+    private final MetricsProvider metricsProvider;
 
     private final int processId;
 
+    private final ITaskExecutorContainer taskExecutorContainer;
+
     public WorkerHeartBeatTask(@NonNull WorkerConfig workerConfig,
+                               @NonNull MetricsProvider metricsProvider,
                                @NonNull RegistryClient registryClient,
-                               @NonNull Supplier<Integer> workerWaitingTaskCount) {
-        super("WorkerHeartBeatTask", workerConfig.getHeartbeatInterval().toMillis());
+                               @NonNull ITaskExecutorContainer taskExecutorContainer) {
+        super("WorkerHeartBeatTask", workerConfig.getMaxHeartbeatInterval().toMillis());
+        this.metricsProvider = metricsProvider;
         this.workerConfig = workerConfig;
         this.registryClient = registryClient;
-        this.workerWaitingTaskCount = workerWaitingTaskCount;
+        this.taskExecutorContainer = taskExecutorContainer;
         this.processId = OSUtils.getProcessID();
     }
 
     @Override
     public WorkerHeartBeat getHeartBeat() {
-        double loadAverage = OSUtils.loadAverage();
-        double cpuUsage = OSUtils.cpuUsage();
-        int maxCpuLoadAvg = workerConfig.getMaxCpuLoadAvg();
-        double reservedMemory = workerConfig.getReservedMemory();
-        double availablePhysicalMemorySize = OSUtils.availablePhysicalMemorySize();
-        int execThreads = workerConfig.getExecThreads();
-        int workerWaitingTaskCount = this.workerWaitingTaskCount.get();
-        int serverStatus = getServerStatus(loadAverage, maxCpuLoadAvg, availablePhysicalMemorySize, reservedMemory, execThreads, workerWaitingTaskCount);
+        SystemMetrics systemMetrics = metricsProvider.getSystemMetrics();
+        ServerStatus serverStatus = getServerStatus(systemMetrics, workerConfig, taskExecutorContainer);
 
         return WorkerHeartBeat.builder()
                 .startupTime(ServerLifeCycleManager.getServerStartupTime())
                 .reportTime(System.currentTimeMillis())
-                .cpuUsage(cpuUsage)
-                .loadAverage(loadAverage)
-                .availablePhysicalMemorySize(availablePhysicalMemorySize)
-                .maxCpuloadAvg(maxCpuLoadAvg)
-                .memoryUsage(OSUtils.memoryUsage())
-                .reservedMemory(reservedMemory)
-                .diskAvailable(OSUtils.diskAvailable())
+                .jvmCpuUsage(systemMetrics.getJvmCpuUsagePercentage())
+                .cpuUsage(systemMetrics.getSystemCpuUsagePercentage())
+                .jvmMemoryUsage(systemMetrics.getJvmMemoryUsedPercentage())
+                .memoryUsage(systemMetrics.getSystemMemoryUsedPercentage())
+                .diskUsage(systemMetrics.getDiskUsedPercentage())
                 .processId(processId)
                 .workerHostWeight(workerConfig.getHostWeight())
-                .workerWaitingTaskCount(this.workerWaitingTaskCount.get())
-                .workerExecThreadCount(workerConfig.getExecThreads())
+                .threadPoolUsage(taskExecutorContainer.slotUsage())
                 .serverStatus(serverStatus)
+                .host(NetUtils.getHost())
+                .port(workerConfig.getListenPort())
+                .workerGroup(workerConfig.getGroup())
                 .build();
     }
 
     @Override
-    public void writeHeartBeat(WorkerHeartBeat workerHeartBeat) {
-        String workerHeartBeatJson = JSONUtils.toJsonString(workerHeartBeat);
-        for (String workerGroupRegistryPath : workerConfig.getWorkerGroupRegistryPaths()) {
-            registryClient.persistEphemeral(workerGroupRegistryPath, workerHeartBeatJson);
+    public void writeHeartBeat(final WorkerHeartBeat workerHeartBeat) {
+        final String failoverNodePath = RegistryUtils.getFailoveredNodePath(workerHeartBeat);
+        if (registryClient.exists(failoverNodePath)) {
+            log.warn("The worker: {} is under {}, means it has been failover will close myself",
+                    workerHeartBeat,
+                    failoverNodePath);
+            registryClient
+                    .getStoppable()
+                    .stop("The worker exist: " + failoverNodePath + ", means it has been failover will close myself");
+            return;
         }
-        log.info("Success write worker group heartBeatInfo into registry, workGroupPath: {} workerHeartBeatInfo: {}",
-                workerConfig.getWorkerGroupRegistryPaths(), workerHeartBeatJson);
+        String workerHeartBeatJson = JSONUtils.toJsonString(workerHeartBeat);
+        String workerRegistryPath = workerConfig.getWorkerRegistryPath();
+        registryClient.persistEphemeral(workerRegistryPath, workerHeartBeatJson);
+        WorkerServerMetrics.incWorkerHeartbeatCount();
+        log.debug(
+                "Success write worker group heartBeatInfo into registry, workerRegistryPath: {} workerHeartBeatInfo: {}",
+                workerRegistryPath,
+                workerHeartBeatJson);
     }
 
-    public int getServerStatus(double loadAverage,
-                               double maxCpuloadAvg,
-                               double availablePhysicalMemorySize,
-                               double reservedMemory,
-                               int workerExecThreadCount,
-                               int workerWaitingTaskCount) {
-        if (loadAverage > maxCpuloadAvg || availablePhysicalMemorySize < reservedMemory) {
-            log.warn("current cpu load average {} is too high or available memory {}G is too low, under max.cpuload.avg={} and reserved.memory={}G",
-                    loadAverage, availablePhysicalMemorySize, maxCpuloadAvg, reservedMemory);
-            return Constants.ABNORMAL_NODE_STATUS;
-        } else if (workerWaitingTaskCount > workerExecThreadCount) {
-            log.warn("current waiting task count {} is large than worker thread count {}, worker is busy", workerWaitingTaskCount, workerExecThreadCount);
-            return Constants.BUSY_NODE_STATUE;
-        } else {
-            return Constants.NORMAL_NODE_STATUS;
+    private ServerStatus getServerStatus(SystemMetrics systemMetrics,
+                                         WorkerConfig workerConfig,
+                                         ITaskExecutorContainer taskExecutorContainer) {
+        if (taskExecutorContainer.slotUsage() == 1) {
+            return ServerStatus.BUSY;
         }
+        WorkerServerLoadProtection serverLoadProtection = workerConfig.getServerLoadProtection();
+        return serverLoadProtection.isOverload(systemMetrics) ? ServerStatus.BUSY : ServerStatus.NORMAL;
     }
 }

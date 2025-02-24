@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-import { TaskType } from '@/views/projects/task/constants/task-type'
+import type { TaskType } from '@/store/project/types'
 export type { ITaskState } from '@/common/types'
 
-export interface ProcessDefinition {
+export interface WorkflowDefinition {
   id: number
   code: number
   name: string
@@ -48,9 +48,9 @@ export interface ProcessDefinition {
 export interface Connect {
   id?: number
   name: string
-  processDefinitionVersion?: number
+  workflowDefinitionVersion?: number
   projectCode?: number
-  processDefinitionCode?: number
+  workflowDefinitionCode?: number
   preTaskCode: number
   preTaskVersion: number
   postTaskCode: number
@@ -99,8 +99,8 @@ export type NodeData = {
 } & Partial<TaskDefinition>
 
 export interface WorkflowDefinition {
-  processDefinition: ProcessDefinition
-  processTaskRelationList: Connect[]
+  workflowDefinition: WorkflowDefinition
+  workflowTaskRelationList: Connect[]
   taskDefinitionList: TaskDefinition[]
 }
 
@@ -111,15 +111,16 @@ export interface WorkflowInstance {
   commandType: string
   commandParam: string
   failureStrategy: string
-  processInstancePriority: string
+  workflowInstancePriority: string
   workerGroup: string
+  tenantCode: string
   warningType: string
   warningGroupId: number
 }
 
 export interface EditWorkflowDefinition {
-  processDefinition: ProcessDefinition
-  processTaskRelationList: Connect[]
+  workflowDefinition: WorkflowDefinition
+  workflowTaskRelationList: Connect[]
   taskDefinitionList: NodeData[]
 }
 
@@ -136,13 +137,14 @@ export interface Coordinate {
 
 export interface GlobalParam {
   key: string
+  direct: string
+  type: string
   value: string
 }
 
 export interface SaveForm {
   name: string
   description: string
-  tenantCode: string
   executionType: string
   timeoutFlag: boolean
   timeout: number
@@ -161,8 +163,9 @@ export interface IStartupParam {
   commandType: string
   commandParam: string
   failureStrategy: string
-  processInstancePriority: string
+  workflowInstancePriority: string
   workerGroup: string
+  tenantCode: string
   warningType: string
   warningGroupId: number
 }
@@ -172,3 +175,5 @@ export interface IWorkflowTaskInstance {
   taskCode: number
   taskType: string
 }
+
+export { TaskType }

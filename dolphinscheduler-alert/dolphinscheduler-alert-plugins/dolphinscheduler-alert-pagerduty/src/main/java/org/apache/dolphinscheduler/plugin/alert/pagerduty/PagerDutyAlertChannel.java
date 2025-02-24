@@ -25,12 +25,13 @@ import org.apache.dolphinscheduler.alert.api.AlertResult;
 import java.util.Map;
 
 public final class PagerDutyAlertChannel implements AlertChannel {
+
     @Override
     public AlertResult process(AlertInfo alertInfo) {
         AlertData alertData = alertInfo.getAlertData();
         Map<String, String> alertParams = alertInfo.getAlertParams();
-        if (alertParams == null || alertParams.size() == 0) {
-            return new AlertResult("false", "PagerDuty alert params is empty");
+        if (alertParams == null || alertParams.isEmpty()) {
+            return new AlertResult(false, "PagerDuty alert params is empty");
         }
 
         return new PagerDutySender(alertParams).sendPagerDutyAlter(alertData.getTitle(), alertData.getContent());

@@ -129,9 +129,9 @@ export function connectionTest(id: IdReq): any {
   })
 }
 
-export function getDatasourceTablesById(datasourceId: number): any {
+export function getDatasourceDatabasesById(datasourceId: number): any {
   return axios({
-    url: '/datasources/tables',
+    url: '/datasources/databases',
     method: 'get',
     params: {
       datasourceId
@@ -139,8 +139,22 @@ export function getDatasourceTablesById(datasourceId: number): any {
   })
 }
 
+export function getDatasourceTablesById(
+  datasourceId: number,
+  database: string
+): any {
+  return axios({
+    url: '/datasources/tables',
+    method: 'get',
+    params: {
+      datasourceId,
+      database
+    }
+  })
+}
 export function getDatasourceTableColumnsById(
   datasourceId: number,
+  database: string,
   tableName: string
 ): any {
   return axios({
@@ -148,6 +162,7 @@ export function getDatasourceTableColumnsById(
     method: 'get',
     params: {
       datasourceId,
+      database,
       tableName
     }
   })

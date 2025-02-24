@@ -20,7 +20,6 @@ import { NSpace, NTooltip, NButton, NIcon, NPopconfirm } from 'naive-ui'
 import {
   DeleteOutlined,
   FormOutlined,
-  InfoCircleFilled,
   SyncOutlined,
   CloseOutlined,
   CloseCircleOutlined,
@@ -31,7 +30,7 @@ import {
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import type { Router } from 'vue-router'
-import { IWorkflowInstance } from '@/service/modules/process-instances/types'
+import { IWorkflowInstance } from '@/service/modules/workflow-instances/types'
 
 const props = {
   row: {
@@ -58,7 +57,7 @@ export default defineComponent({
       router.push({
         name: 'workflow-instance-detail',
         params: { id: props.row!.id },
-        query: { code: props.row!.processDefinitionCode }
+        query: { code: props.row!.workflowDefinitionCode }
       })
     }
 
@@ -66,7 +65,7 @@ export default defineComponent({
       router.push({
         name: 'workflow-instance-gantt',
         params: { id: props.row!.id },
-        query: { code: props.row!.processDefinitionCode }
+        query: { code: props.row!.workflowDefinitionCode }
       })
     }
 
@@ -250,35 +249,30 @@ export default defineComponent({
           {{
             default: () => t('project.workflow.delete'),
             trigger: () => (
-              <NButton
-                tag='div'
-                size='small'
-                type='error'
-                circle
-                disabled={
-                  (state !== 'SUCCESS' &&
-                    state !== 'FAILURE' &&
-                    state !== 'STOP' &&
-                    state !== 'PAUSE') ||
-                  this.row?.disabled
-                }
-              >
-                <NPopconfirm onPositiveClick={this.handleDeleteInstance}>
-                  {{
-                    default: () => t('project.workflow.delete_confirm'),
-                    icon: () => (
-                      <NIcon>
-                        <InfoCircleFilled />
-                      </NIcon>
-                    ),
-                    trigger: () => (
+              <NPopconfirm onPositiveClick={this.handleDeleteInstance}>
+                {{
+                  default: () => t('project.workflow.delete_confirm'),
+                  trigger: () => (
+                    <NButton
+                      tag='div'
+                      size='small'
+                      type='error'
+                      circle
+                      disabled={
+                        (state !== 'SUCCESS' &&
+                          state !== 'FAILURE' &&
+                          state !== 'STOP' &&
+                          state !== 'PAUSE') ||
+                        this.row?.disabled
+                      }
+                    >
                       <NIcon>
                         <DeleteOutlined />
                       </NIcon>
-                    )
-                  }}
-                </NPopconfirm>
-              </NButton>
+                    </NButton>
+                  )
+                }}
+              </NPopconfirm>
             )
           }}
         </NTooltip>

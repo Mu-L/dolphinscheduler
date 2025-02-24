@@ -36,22 +36,22 @@
             <property name="alias" value="td"/>
         </include>
         from t_ds_task_definition td
-        join t_ds_process_task_relation ptr on ptr.project_code = td.project_code
+        join t_ds_workflow_task_relation ptr on ptr.project_code = td.project_code
         where td.project_code = #{projectCode}
         and td.name = #{name}
-        and ptr.process_definition_code = #{processCode}
+        and ptr.workflow_definition_code = #{workflowDefinitionCode}
         and td.code = ptr.post_task_code
         limit 1
     </select>
-    <select id="queryAllDefinitionList" resultType="org.apache.dolphinscheduler.dao.entity.TaskDefinition">
+    <select id="queryAllTaskDefinitionWorkerGroups" resultType="java.lang.String">
         select
-        <include refid="baseSql"/>
+            worker_group
         from t_ds_task_definition
         where project_code = #{projectCode}
-        order by create_time desc
+        group by worker_group
     </select>
 
-    <select id="countDefinitionGroupByUser" resultType="org.apache.dolphinscheduler.dao.entity.DefinitionGroupByUser">
+    <select id="countDefinitionGroupByUser" resultType="org.apache.dolphinscheduler.dao.model.WorkflowDefinitionCountDto">
         SELECT td.user_id as user_id, tu.user_name as user_name, count(0) as count
         FROM t_ds_task_definition td
         JOIN t_ds_user tu on tu.id=td.user_id
@@ -71,21 +71,19 @@
         from t_ds_task_definition
         where code = #{code}
     </select>
-    <select id="listResources" resultType="java.util.HashMap">
-        SELECT id,resource_ids
-        FROM t_ds_task_definition
-        WHERE  resource_ids is not null and resource_ids != ''
-    </select>
 
-    <select id="listResourcesByUser" resultType="java.util.HashMap">
-        SELECT id,resource_ids
-        FROM t_ds_task_definition
-        WHERE user_id = #{userId} and resource_ids is not null and resource_ids != ''
-    </select>
     <delete id="deleteByCode">
         delete from t_ds_task_definition
         where code = #{code}
     </delete>
+
+    <delete id="deleteByBatchCodes">
+        delete from t_ds_task_definition where code in
+        <foreach collection="taskCodeList" item="taskCode" open="(" separator="," close=")">
+            #{taskCode}
+        </foreach>
+    </delete>
+
     <insert id="batchInsert">
         insert into t_ds_task_definition (code, name, version, description, project_code, user_id,
         task_type, task_params, flag, task_priority, worker_group, environment_code, fail_retry_times, fail_retry_interval,
@@ -96,33 +94,25 @@
             #{taskDefinition.projectCode},#{taskDefinition.userId},#{taskDefinition.taskType},#{taskDefinition.taskParams},#{taskDefinition.flag},
             #{taskDefinition.taskPriority},#{taskDefinition.workerGroup},#{taskDefinition.environmentCode},#{taskDefinition.failRetryTimes},
             #{taskDefinition.failRetryInterval},#{taskDefinition.timeoutFlag},#{taskDefinition.timeoutNotifyStrategy},#{taskDefinition.timeout},
-            #{taskDefinition.delayTime},#{taskDefinition.resourceIds},#{taskDefinition.createTime},#{taskDefinition.updateTime}, #{taskDefinition.taskGroupId},
-            #{taskDefinition.taskExecuteType})
+            #{taskDefinition.delayTime},#{taskDefinition.resourceIds},#{taskDefinition.createTime},#{taskDefinition.updateTime},
+            #{taskDefinition.taskGroupId}, #{taskDefinition.taskExecuteType})
         </foreach>
     </insert>
-    <select id="queryDefineListPaging" resultType="org.apache.dolphinscheduler.dao.entity.TaskMainInfo">
+
+    <select id="queryDefineListByCodeList" resultType="org.apache.dolphinscheduler.dao.entity.TaskMainInfo">
         select td.name task_name,td.code task_code,td.version task_version,td.task_type,td.create_time task_create_time,td.update_time task_update_time,
-        pd.code process_definition_code,pd.version process_definition_version,pd.name process_definition_name,pd.release_state process_release_state,
+        pd.code workflow_definition_code,pd.version workflow_definition_version,pd.name workflow_definition_name,pd.release_state workflow_release_state,
         pt.pre_task_code upstream_task_code,up.name upstream_task_name
         from t_ds_task_definition td
-        LEFT JOIN t_ds_process_task_relation pt ON td.code	= pt.post_task_code and td.version=pt.post_task_version
-        LEFT JOIN t_ds_process_definition pd ON pt.process_definition_code = pd.code and pt.process_definition_version=pd.version
+        LEFT JOIN t_ds_workflow_task_relation pt ON td.code	= pt.post_task_code and td.version=pt.post_task_version
+        LEFT JOIN t_ds_workflow_definition pd ON pt.workflow_definition_code = pd.code and pt.workflow_definition_version=pd.version
         LEFT JOIN t_ds_task_definition up on pt.pre_task_code=up.code and pt.pre_task_version=up.version
-        WHERE td.project_code = #{projectCode}
-        <if test="taskType != ''">
-            and td.task_type = #{taskType}
-        </if>
-        <if test="taskExecuteType != null">
-            and td.task_execute_type = #{taskExecuteType.code}
-        </if>
-        <if test="searchWorkflowName != null and searchWorkflowName != ''">
-            and pd.name like concat('%', #{searchWorkflowName}, '%')
-        </if>
-        <if test="searchTaskName != null and searchTaskName != ''">
-            and td.name like concat('%', #{searchTaskName}, '%')
-        </if>
-        order by td.update_time desc
+        WHERE td.project_code = #{projectCode} and td.code in
+        <foreach collection="codeList" item="code" open="(" separator="," close=")">
+            #{code}
+        </foreach>
     </select>
+
     <select id="queryByCodeList" resultType="org.apache.dolphinscheduler.dao.entity.TaskDefinition">
         select
         <include refid="baseSql"/>
@@ -135,4 +125,32 @@
             </foreach>
         </if>
     </select>
+    <select id="filterTaskDefinition"
+            parameterType="org.apache.dolphinscheduler.dao.entity.TaskDefinition"
+            resultType="org.apache.dolphinscheduler.dao.entity.TaskDefinition"
+    >
+        SELECT
+        <include refid="baseSql"/>
+        FROM t_ds_task_definition
+        <where>
+            <if test=" task.projectCode != 0">
+                and project_code = #{task.projectCode}
+            </if>
+            <if test=" task.name != null and task.name != ''">
+                and name like concat('%', #{task.name}, '%')
+            </if>
+            <if test=" task.taskType != null and task.taskType != ''">
+                and task_type = #{task.taskType}
+            </if>
+        </where>
+        order by update_time desc, id asc
+    </select>
+
+    <select id="queryDefinitionsByTaskType" resultType="org.apache.dolphinscheduler.dao.entity.TaskDefinition">
+        select
+            <include refid="baseSql"/>
+        from t_ds_task_definition
+        where task_type = #{taskType}
+    </select>
+
 </mapper>

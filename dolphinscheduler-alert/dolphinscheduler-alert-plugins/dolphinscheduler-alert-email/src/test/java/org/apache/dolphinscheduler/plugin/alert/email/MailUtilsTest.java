@@ -18,10 +18,9 @@
 package org.apache.dolphinscheduler.plugin.alert.email;
 
 import org.apache.dolphinscheduler.alert.api.AlertConstants;
+import org.apache.dolphinscheduler.alert.api.AlertResult;
 import org.apache.dolphinscheduler.alert.api.ShowType;
-import org.apache.dolphinscheduler.plugin.alert.email.template.AlertTemplate;
-import org.apache.dolphinscheduler.plugin.alert.email.template.DefaultHTMLTemplate;
-import org.apache.dolphinscheduler.spi.utils.JSONUtils;
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,20 +28,21 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Ignore("The test case makes no sense")
+@Disabled("The test case makes no sense")
 public class MailUtilsTest {
+
     private static final Logger logger = LoggerFactory.getLogger(MailUtilsTest.class);
     static MailSender mailSender;
     private static Map<String, String> emailConfig = new HashMap<>();
-    private static AlertTemplate alertTemplate;
 
-    @BeforeClass
+    @BeforeAll
     public static void initEmailConfig() {
         emailConfig.put(MailParamsConstants.NAME_MAIL_PROTOCOL, "smtp");
         emailConfig.put(MailParamsConstants.NAME_MAIL_SMTP_HOST, "xxx.xxx.com");
@@ -57,7 +57,6 @@ public class MailUtilsTest {
         emailConfig.put(MailParamsConstants.NAME_PLUGIN_DEFAULT_EMAIL_RECEIVERS, "347801120@qq.com");
         emailConfig.put(MailParamsConstants.NAME_PLUGIN_DEFAULT_EMAIL_RECEIVERCCS, "347801120@qq.com");
         emailConfig.put(AlertConstants.NAME_SHOW_TYPE, ShowType.TEXT.getDescp());
-        alertTemplate = new DefaultHTMLTemplate();
         mailSender = new MailSender(emailConfig);
     }
 
@@ -65,19 +64,50 @@ public class MailUtilsTest {
     public void testSendMails() {
 
         String content = "[\"id:69\","
-            + "\"name:UserBehavior-0--1193959466\","
-            + "\"Job name: Start workflow\","
-            + "\"State: SUCCESS\","
-            + "\"Recovery:NO\","
-            + "\"Run time: 1\","
-            + "\"Start time: 2018-08-06 10:31:34.0\","
-            + "\"End time: 2018-08-06 10:31:49.0\","
-            + "\"Host: 192.168.xx.xx\","
-            + "\"Notify group :4\"]";
+                + "\"name:UserBehavior-0--1193959466\","
+                + "\"Job name: Start workflow\","
+                + "\"State: SUCCESS\","
+                + "\"Recovery:NO\","
+                + "\"Run time: 1\","
+                + "\"Start time: 2018-08-06 10:31:34.0\","
+                + "\"End time: 2018-08-06 10:31:49.0\","
+                + "\"Host: 192.168.xx.xx\","
+                + "\"Notify group :4\"]";
 
-        mailSender.sendMails(
-            "Mysql Exception",
-            content);
+        AlertResult alertResult = mailSender.sendMails(
+                "Mysql Exception",
+                content);
+        Assertions.assertFalse(alertResult.isSuccess());
+    }
+
+    @Test
+    void testAuthCheck() {
+        String title = "Auth Exception";
+        String content = list2String();
+
+        // test auth false and user && pwd null will pass
+        emailConfig.put(MailParamsConstants.NAME_MAIL_SMTP_AUTH, "false");
+        emailConfig.put(MailParamsConstants.NAME_MAIL_USER, null);
+        emailConfig.put(MailParamsConstants.NAME_MAIL_PASSWD, null);
+        mailSender = new MailSender(emailConfig);
+        mailSender.sendMails(title, content);
+
+        try {
+            // test auth true and user null will throw exception
+            emailConfig.put(MailParamsConstants.NAME_MAIL_SMTP_AUTH, "true");
+            emailConfig.put(MailParamsConstants.NAME_MAIL_USER, null);
+            mailSender = new MailSender(emailConfig);
+            mailSender.sendMails(title, content);
+        } catch (Exception e) {
+            Assertions.assertTrue(e.getMessage().contains(MailParamsConstants.NAME_MAIL_USER));
+        }
+
+        // test auth true and user && pwd not null will pass
+        emailConfig.put(MailParamsConstants.NAME_MAIL_USER, "user");
+        emailConfig.put(MailParamsConstants.NAME_MAIL_PASSWD, "passwd");
+        mailSender = new MailSender(emailConfig);
+        AlertResult alertResult = mailSender.sendMails(title, content);
+        Assertions.assertFalse(alertResult.isSuccess());
     }
 
     public String list2String() {
@@ -103,7 +133,6 @@ public class MailUtilsTest {
         logger.info(mapjson);
 
         return mapjson;
-
     }
 
     @Test
@@ -112,23 +141,25 @@ public class MailUtilsTest {
         String content = list2String();
         emailConfig.put(AlertConstants.NAME_SHOW_TYPE, ShowType.TABLE.getDescp());
         mailSender = new MailSender(emailConfig);
-        mailSender.sendMails(title, content);
+        AlertResult alertResult = mailSender.sendMails(title, content);
+        Assertions.assertFalse(alertResult.isSuccess());
     }
 
     @Test
-    public void testAttachmentFile() throws Exception {
+    public void testAttachmentFile() {
         String content = list2String();
         emailConfig.put(AlertConstants.NAME_SHOW_TYPE, ShowType.ATTACHMENT.getDescp());
         mailSender = new MailSender(emailConfig);
-        mailSender.sendMails("gaojing", content);
+        AlertResult alertResult = mailSender.sendMails("gaojing", content);
+        Assertions.assertFalse(alertResult.isSuccess());
     }
 
     @Test
-    public void testTableAttachmentFile() throws Exception {
+    public void testTableAttachmentFile() {
         String content = list2String();
         emailConfig.put(AlertConstants.NAME_SHOW_TYPE, ShowType.TABLE_ATTACHMENT.getDescp());
         mailSender = new MailSender(emailConfig);
-        mailSender.sendMails("gaojing", content);
+        AlertResult alertResult = mailSender.sendMails("gaojing", content);
+        Assertions.assertFalse(alertResult.isSuccess());
     }
-
 }

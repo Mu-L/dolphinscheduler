@@ -19,14 +19,16 @@ package org.apache.dolphinscheduler.plugin.datasource.spark;
 
 import org.apache.dolphinscheduler.spi.datasource.DataSourceChannel;
 import org.apache.dolphinscheduler.spi.datasource.DataSourceChannelFactory;
+import org.apache.dolphinscheduler.spi.enums.DbType;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(DataSourceChannelFactory.class)
 public class SparkDataSourceChannelFactory implements DataSourceChannelFactory {
+
     @Override
     public String getName() {
-        return "spark";
+        return DbType.SPARK.getName();
     }
 
     @Override

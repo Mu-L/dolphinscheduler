@@ -53,7 +53,8 @@ export function useFlink({
     slot: 1,
     taskManager: 2,
     parallelism: 1,
-    timeoutNotifyStrategy: ['WARN']
+    timeoutNotifyStrategy: ['WARN'],
+    yarnQueue: ''
   })
 
   return {
@@ -63,7 +64,7 @@ export function useFlink({
       Fields.useRunFlag(),
       Fields.useDescription(),
       Fields.useTaskPriority(),
-      Fields.useWorkerGroup(),
+      Fields.useWorkerGroup(projectCode),
       Fields.useEnvironmentName(model, !data?.id),
       ...Fields.useTaskGroup(model, projectCode),
       ...Fields.useFailed(),

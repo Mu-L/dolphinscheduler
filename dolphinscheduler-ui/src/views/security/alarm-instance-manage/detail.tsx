@@ -23,7 +23,7 @@ import {
   ref,
   getCurrentInstance
 } from 'vue'
-import { NSelect, NInput } from 'naive-ui'
+import { NSelect, NInput, NButton } from 'naive-ui'
 import { isFunction } from 'lodash'
 import { useI18n } from 'vue-i18n'
 import { useForm } from './use-form'
@@ -31,7 +31,7 @@ import { useDetail } from './use-detail'
 import Modal from '@/components/modal'
 import Form from '@/components/form'
 import getElementByJson from '@/components/form/get-elements-by-json'
-import type { IRecord, FormRules, IFormItem } from './types'
+import type { IRecord, IFormRules, IFormItem } from './types'
 import type { PropType, Ref } from 'vue'
 
 interface IElements extends Omit<Ref, 'value'> {
@@ -53,9 +53,9 @@ const DetailModal = defineComponent({
   props,
   emits: ['cancel', 'update'],
   setup(props, ctx) {
-    const { t } = useI18n()
+    const { t, locale } = useI18n()
 
-    const rules = ref<FormRules>({})
+    const rules = ref<IFormRules>({})
     const elements = ref<IFormItem[]>([]) as IElements
 
     const {
@@ -68,7 +68,7 @@ const DetailModal = defineComponent({
       changePlugin
     } = useForm()
 
-    const { status, createOrUpdate } = useDetail(getFormValues)
+    const { status, createOrUpdate, testSend } = useDetail(getFormValues)
 
     const onCancel = () => {
       resetForm()
@@ -85,9 +85,38 @@ const DetailModal = defineComponent({
         ctx.emit('update')
       }
     }
+    const onTest = async () => {
+      await state.detailFormRef.validate()
+      testSend(state.json)
+    }
+
     const onChangePlugin = changePlugin
 
     const trim = getCurrentInstance()?.appContext.config.globalProperties.trim
+
+    function isJSON(str: string): boolean {
+      try {
+        const parsed = JSON.parse(str)
+        return typeof parsed === 'object' && parsed !== null
+      } catch (e) {
+        return false
+      }
+    }
+
+    function updatePlaceholder(mergedItem: any) {
+      const { props } = mergedItem
+      if (!props || !props.placeholder) return
+
+      const placeholder = props.placeholder
+      if (!isJSON(placeholder)) return
+
+      const msgMap = JSON.parse(placeholder)
+      if (locale.value === 'zh_CN') {
+        props.placeholder = msgMap.zhMsg
+      } else if (locale.value === 'en_US') {
+        props.placeholder = msgMap.enMsg
+      }
+    }
 
     watch(
       () => props.show,
@@ -104,6 +133,7 @@ const DetailModal = defineComponent({
           mergedItem.name = t(
             'security.alarm_instance' + '.' + mergedItem.field
           )
+          updatePlaceholder(mergedItem)
         })
         const { rules: fieldsRules, elements: fieldsElements } =
           getElementByJson(state.json, state.detailForm)
@@ -125,6 +155,7 @@ const DetailModal = defineComponent({
       elements,
       onChangePlugin,
       onSubmit,
+      onTest,
       onCancel,
       trim
     }
@@ -143,7 +174,9 @@ const DetailModal = defineComponent({
       saving,
       onChangePlugin,
       onCancel,
-      onSubmit
+      onSubmit,
+      onTest,
+      testing
     } = this
     const { currentRecord } = props
     return (
@@ -195,6 +228,7 @@ const DetailModal = defineComponent({
                           'security.alarm_instance.select_plugin_tips'
                         )}
                         on-update:value={onChangePlugin}
+                        filterable
                       />
                     )
                   },
@@ -205,6 +239,18 @@ const DetailModal = defineComponent({
                 cols: 24
               }}
             />
+          ),
+
+          'btn-middle': () => (
+            <NButton
+              class='btn-test-send'
+              type='primary'
+              size='small'
+              onClick={onTest}
+              loading={testing || loading}
+            >
+              {t('security.alarm_instance.test_send')}
+            </NButton>
           )
         }}
       </Modal>

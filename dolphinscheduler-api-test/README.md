@@ -9,7 +9,7 @@ Every page of DolphinScheduler's api is abstracted into a class for better maint
 ### Example
 
 The login page's api is abstracted
-as [`LoginPage`](dolphinscheduler-api-test-case/src/test/java/org/apache/dolphinscheduler/api.test/pages/LoginPage.java)
+as [`LoginPage`](dolphinscheduler-api-test-case/src/test/java/org/apache/dolphinscheduler/api/test/pages/LoginPage.java)
 , with the following fields,
 
 ```java
@@ -42,4 +42,30 @@ the `docker-compose.yaml` files to automatically set up the environment in the t
 class TenantAPITest {
 }
 ```
+
+## Notes
+
+## Local development
+
+### Mac M1
+Add VM options to the test configuration in IntelliJ IDEA:
+```
+# In this mode you need to install docker desktop for mac and run it with locally
+-Dm1_chip=true
+```
+
+### Running locally(without Docker)
+```
+# In this mode you need to start frontend and backend services locally
+-Dlocal=true
+```
+
+### Running locally(with Docker)
+```
+# In this mode you only need to install docker locally
+```
+
+- To run the tests locally, you need to have the DolphinScheduler running locally. You should add `dolphinscheduler-api-test/pom.xml` to the maven project
+  Since it does not participate in project compilation, it is not in the main project.
+- Running run test class `org.apache.dolphinscheduler.api.test.cases.TenantAPITest` in the IDE.
 

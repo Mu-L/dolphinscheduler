@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+{{- if and .Values.master.enabled }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -22,6 +23,7 @@ metadata:
     {{- include "dolphinscheduler.master.labels" . | nindent 4 }}
 spec:
   podManagementPolicy: {{ .Values.master.podManagementPolicy }}
+  updateStrategy: {{- include "dolphinscheduler.tplvalues.render" (dict "value" .Values.master.updateStrategy "context" $ ) | nindent 4 }}
   replicas: {{ .Values.master.replicas }}
   selector:
     matchLabels:
@@ -31,11 +33,17 @@ spec:
     metadata:
       labels:
         {{- include "dolphinscheduler.master.labels" . | nindent 8 }}
-      {{- if .Values.master.annotations }}
+      {{- if or .Values.master.annotations .Values.conf.auto  }}
       annotations:
+        {{- if .Values.conf.auto }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- end }}
+        {{- if .Values.master.annotations }}
         {{- toYaml .Values.master.annotations | nindent 8 }}
+        {{- end }}
       {{- end }}
     spec:
+      serviceAccountName: {{ template "dolphinscheduler.fullname" . }}
       {{- if .Values.master.affinity }}
       affinity:
         {{- toYaml .Values.master.affinity | nindent 8 }}
@@ -59,6 +67,8 @@ spec:
           ports:
             - containerPort: 5678
               name: "master-port"
+            - containerPort: 5679
+              name: "actuator-port"
           env:
             - name: TZ
               value: {{ .Values.timezone }}
@@ -100,10 +110,16 @@ spec:
           volumeMounts:
             - mountPath: "/opt/dolphinscheduler/logs"
               name: {{ include "dolphinscheduler.fullname" . }}-master
+            {{- if .Values.master.enableCustomizedConfig }}
+            - name: master-config-volume
+              mountPath: /opt/dolphinscheduler/conf/application.yaml
+              subPath: application.yaml
+            {{- end }}
             {{- include "dolphinscheduler.sharedStorage.volumeMount" . | nindent 12 }}
             - name: config-volume
               mountPath: /opt/dolphinscheduler/conf/common.properties
-              subPath: common_properties
+              subPath: common.properties
+            {{- include "dolphinscheduler.etcd.ssl.volumeMount" . | nindent 12 }}
       volumes:
         - name: {{ include "dolphinscheduler.fullname" . }}-master
           {{- if .Values.master.persistentVolumeClaim.enabled }}
@@ -112,10 +128,16 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        {{- if .Values.master.enableCustomizedConfig }}
+        - name: master-config-volume
+          configMap:
+            name: {{ include "dolphinscheduler.fullname" . }}-master
+        {{- end }}
         {{- include "dolphinscheduler.sharedStorage.volume" . | nindent 8 }}
         - name: config-volume
           configMap:
             name: {{ include "dolphinscheduler.fullname" . }}-configs
+        {{- include "dolphinscheduler.etcd.ssl.volume" . | nindent 8 }}
   {{- if .Values.master.persistentVolumeClaim.enabled }}
   volumeClaimTemplates:
     - metadata:
@@ -133,3 +155,4 @@ spec:
           requests:
             storage: {{ .Values.master.persistentVolumeClaim.storage | quote }}
   {{- end }}
+{{- end }}

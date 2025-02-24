@@ -17,76 +17,38 @@
 
 package org.apache.dolphinscheduler.dao.entity;
 
+import org.apache.dolphinscheduler.common.enums.Flag;
+
 import java.io.Serializable;
 import java.util.Date;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @TableName("t_ds_task_group")
 public class TaskGroup implements Serializable {
 
-    /**
-     * key
-     */
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
-    /**
-     * task_group name
-     */
     private String name;
 
-    private String description;
-    /**
-     * 作业组大小
-     */
-    private int groupSize;
-    /**
-     * 已使用作业组大小
-     */
-    private int useSize;
-    /**
-     * creator id
-     */
-    private int userId;
-    /**
-     * 0 not available, 1 available
-     */
-    private Integer status;
-    /**
-     * create time
-     */
-    private Date createTime;
-    /**
-     * update time
-     */
-    private Date updateTime;
-    /**
-     * project Id
-     */
     private long projectCode;
+    private String description;
+    private int groupSize;
+    private int useSize;
+    private int userId;
+    private Flag status;
+    private Date createTime;
+    private Date updateTime;
 
-    public TaskGroup(String name, long projectCode, String description, int groupSize, int userId, int status) {
-        this.name = name;
-        this.projectCode = projectCode;
-        this.description = description;
-        this.groupSize = groupSize;
-        this.userId = userId;
-        this.status = status;
-        init();
-
-    }
-
-    public TaskGroup() {
-        init();
-    }
-
-    public void init() {
-        this.status = 1;
-        this.useSize = 0;
-    }
 }

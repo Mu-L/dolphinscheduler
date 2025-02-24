@@ -16,6 +16,8 @@
 #
 
 spring:
+  profiles:
+    active: postgresql
   jackson:
     time-zone: UTC
     date-format: "yyyy-MM-dd HH:mm:ss"
@@ -28,15 +30,21 @@ spring:
     password: root
     hikari:
       connection-test-query: select 1
-      minimum-idle: 5
-      auto-commit: true
-      validation-timeout: 3000
       pool-name: DolphinScheduler
-      maximum-pool-size: 50
-      connection-timeout: 30000
-      idle-timeout: 600000
-      leak-detection-threshold: 0
-      initialization-fail-timeout: 1
+
+# Mybatis-plus configuration, you don't need to change it
+mybatis-plus:
+  mapper-locations: classpath:org/apache/dolphinscheduler/dao/mapper/*Mapper.xml
+  type-aliases-package: org.apache.dolphinscheduler.dao.entity
+  configuration:
+    cache-enabled: false
+    call-setters-on-nulls: true
+    map-underscore-to-camel-case: true
+    jdbc-type-for-null: NULL
+  global-config:
+    db-config:
+      id-type: auto
+    banner: false
 
 server:
   port: 50053
@@ -45,7 +53,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: '*'
+        include: health,metrics,prometheus
   endpoint:
     health:
       enabled: true
@@ -64,6 +72,23 @@ alert:
   # Mark each alert of alert server if late after x milliseconds as failed.
   # Define value is (0 = infinite), and alert server would be waiting alert result.
   wait-timeout: 0
+  max-heartbeat-interval: 60s
+  # The maximum number of alerts that can be processed in parallel
+  sender-parallelism: 100
+
+registry:
+  type: zookeeper
+  zookeeper:
+    namespace: dolphinscheduler
+    connect-string: localhost:2181
+    retry-policy:
+      base-sleep-time: 1s
+      max-sleep: 3s
+      max-retries: 5
+    session-timeout: 60s
+    connection-timeout: 15s
+    block-until-connected: 15s
+    digest: ~
 
 metrics:
   enabled: true

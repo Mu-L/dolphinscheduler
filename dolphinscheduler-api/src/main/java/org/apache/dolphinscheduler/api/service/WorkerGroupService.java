@@ -19,29 +19,28 @@ package org.apache.dolphinscheduler.api.service;
 
 import org.apache.dolphinscheduler.api.utils.Result;
 import org.apache.dolphinscheduler.dao.entity.User;
+import org.apache.dolphinscheduler.dao.entity.WorkerGroup;
+import org.apache.dolphinscheduler.dao.entity.WorkerGroupPageDetail;
 
+import java.util.List;
 import java.util.Map;
 
-/**
- * worker group service
- */
 public interface WorkerGroupService {
 
     /**
-     * create or update a worker group
+     * Create or update a worker group
      *
      * @param loginUser login user
      * @param id worker group id
      * @param name worker group name
      * @param addrList addr list
      * @param description   description
-     * @param otherParamsJson  otherParamsJson
      * @return create or update result code
      */
-    Map<String, Object> saveWorkerGroup(User loginUser, int id, String name, String addrList, String description, String otherParamsJson);
+    WorkerGroup saveWorkerGroup(User loginUser, int id, String name, String addrList, String description);
 
     /**
-     * query worker group paging
+     * Query worker group paging
      *
      * @param loginUser login user
      * @param pageNo page number
@@ -52,25 +51,35 @@ public interface WorkerGroupService {
     Result queryAllGroupPaging(User loginUser, Integer pageNo, Integer pageSize, String searchVal);
 
     /**
-     * query all worker group
+     * Query all worker group
      *
-     * @param loginUser
+     * @param loginUser login user
      * @return all worker group list
      */
     Map<String, Object> queryAllGroup(User loginUser);
 
     /**
-     * delete worker group by id
+     * Delete worker group by id
+     * @param loginUser login user
      * @param id worker group id
      * @return delete result code
      */
     Map<String, Object> deleteWorkerGroupById(User loginUser, Integer id);
 
     /**
-     * query all worker address list
+     * Query all worker address list
      *
      * @return all worker address list
      */
     Map<String, Object> getWorkerAddressList();
+
+    /**
+     * Query worker group by workflow definition codes
+     * @param workflowDefinitionCodeList workflowDefinitionCodeList
+     * @return worker group map
+     */
+    Map<Long, String> queryWorkerGroupByWorkflowDefinitionCodes(List<Long> workflowDefinitionCodeList);
+
+    List<WorkerGroupPageDetail> getConfigWorkerGroupPageDetail();
 
 }

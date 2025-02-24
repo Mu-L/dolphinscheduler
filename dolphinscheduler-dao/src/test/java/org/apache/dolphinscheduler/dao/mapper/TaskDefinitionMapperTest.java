@@ -19,17 +19,17 @@ package org.apache.dolphinscheduler.dao.mapper;
 
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.dao.BaseDaoTest;
-import org.apache.dolphinscheduler.dao.entity.DefinitionGroupByUser;
-import org.apache.dolphinscheduler.dao.entity.ProcessTaskRelation;
 import org.apache.dolphinscheduler.dao.entity.TaskDefinition;
 import org.apache.dolphinscheduler.dao.entity.User;
+import org.apache.dolphinscheduler.dao.entity.WorkflowTaskRelation;
+import org.apache.dolphinscheduler.dao.model.WorkflowDefinitionCountDto;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TaskDefinitionMapperTest extends BaseDaoTest {
@@ -38,7 +38,7 @@ public class TaskDefinitionMapperTest extends BaseDaoTest {
     private TaskDefinitionMapper taskDefinitionMapper;
 
     @Autowired
-    private ProcessTaskRelationMapper processTaskRelationMapper;
+    private WorkflowTaskRelationMapper workflowTaskRelationMapper;
 
     @Autowired
     private UserMapper userMapper;
@@ -69,49 +69,49 @@ public class TaskDefinitionMapperTest extends BaseDaoTest {
      *
      * @return ProcessDefinition
      */
-    private ProcessTaskRelation insertTaskRelation(long postTaskCode) {
-        ProcessTaskRelation processTaskRelation = new ProcessTaskRelation();
-        processTaskRelation.setName("def 1");
-        processTaskRelation.setProjectCode(1L);
-        processTaskRelation.setProcessDefinitionCode(1L);
-        processTaskRelation.setPostTaskCode(postTaskCode);
-        processTaskRelation.setPreTaskCode(0L);
-        processTaskRelation.setUpdateTime(new Date());
-        processTaskRelation.setCreateTime(new Date());
-        processTaskRelationMapper.insert(processTaskRelation);
-        return processTaskRelation;
+    private WorkflowTaskRelation insertTaskRelation(long postTaskCode) {
+        WorkflowTaskRelation workflowTaskRelation = new WorkflowTaskRelation();
+        workflowTaskRelation.setName("def 1");
+        workflowTaskRelation.setProjectCode(1L);
+        workflowTaskRelation.setWorkflowDefinitionCode(1L);
+        workflowTaskRelation.setPostTaskCode(postTaskCode);
+        workflowTaskRelation.setPreTaskCode(0L);
+        workflowTaskRelation.setUpdateTime(new Date());
+        workflowTaskRelation.setCreateTime(new Date());
+        workflowTaskRelationMapper.insert(workflowTaskRelation);
+        return workflowTaskRelation;
     }
 
     @Test
     public void testInsert() {
         TaskDefinition taskDefinition = insertOne();
-        Assert.assertNotEquals(taskDefinition.getId().intValue(), 0);
+        Assertions.assertNotEquals(0, taskDefinition.getId().intValue());
     }
 
     @Test
     public void testQueryByDefinitionName() {
         TaskDefinition taskDefinition = insertOne();
-        ProcessTaskRelation processTaskRelation = insertTaskRelation(taskDefinition.getCode());
+        WorkflowTaskRelation workflowTaskRelation = insertTaskRelation(taskDefinition.getCode());
         TaskDefinition result = taskDefinitionMapper.queryByName(taskDefinition.getProjectCode(),
-                processTaskRelation.getProcessDefinitionCode(), taskDefinition.getName());
+                workflowTaskRelation.getWorkflowDefinitionCode(), taskDefinition.getName());
 
-        Assert.assertNotNull(result);
+        Assertions.assertNotNull(result);
     }
 
     @Test
     public void testQueryByDefinitionCode() {
         TaskDefinition taskDefinition = insertOne();
         TaskDefinition result = taskDefinitionMapper.queryByCode(taskDefinition.getCode());
-        Assert.assertNotNull(result);
+        Assertions.assertNotNull(result);
 
     }
 
     @Test
-    public void testQueryAllDefinitionList() {
+    public void testQueryAllTaskDefinitionWorkerGroups() {
         TaskDefinition taskDefinition = insertOne();
-        List<TaskDefinition> taskDefinitions =
-                taskDefinitionMapper.queryAllDefinitionList(taskDefinition.getProjectCode());
-        Assert.assertNotEquals(taskDefinitions.size(), 0);
+        List<String> taskDefinitions =
+                taskDefinitionMapper.queryAllTaskDefinitionWorkerGroups(taskDefinition.getProjectCode());
+        Assertions.assertNotEquals(0, taskDefinitions.size());
 
     }
 
@@ -123,30 +123,9 @@ public class TaskDefinitionMapperTest extends BaseDaoTest {
         User un = userMapper.queryByUserNameAccurately("un");
         TaskDefinition taskDefinition = insertOne(un.getId());
 
-        List<DefinitionGroupByUser> users =
+        List<WorkflowDefinitionCountDto> users =
                 taskDefinitionMapper.countDefinitionGroupByUser(new Long[]{taskDefinition.getProjectCode()});
-        Assert.assertNotEquals(users.size(), 0);
-
-    }
-
-    @Test
-    public void testListResources() {
-        TaskDefinition taskDefinition = insertOne();
-        List<Map<String, Object>> maps = taskDefinitionMapper.listResources();
-        Assert.assertNotEquals(maps.size(), 0);
-
-    }
-
-    @Test
-    public void testListResourcesByUser() {
-        User user = new User();
-        user.setUserName("un");
-        userMapper.insert(user);
-        User un = userMapper.queryByUserNameAccurately("un");
-        TaskDefinition taskDefinition = insertOne(un.getId());
-
-        List<Map<String, Object>> maps = taskDefinitionMapper.listResourcesByUser(taskDefinition.getUserId());
-        Assert.assertNotEquals(maps.size(), 0);
+        Assertions.assertNotEquals(0, users.size());
 
     }
 
@@ -154,7 +133,7 @@ public class TaskDefinitionMapperTest extends BaseDaoTest {
     public void testDeleteByCode() {
         TaskDefinition taskDefinition = insertOne();
         int i = taskDefinitionMapper.deleteByCode(taskDefinition.getCode());
-        Assert.assertNotEquals(i, 0);
+        Assertions.assertNotEquals(0, i);
 
     }
 
@@ -166,13 +145,13 @@ public class TaskDefinitionMapperTest extends BaseDaoTest {
 
         Map<String, String> taskParamsMap = definition.getTaskParamMap();
         if (taskParamsMap != null) {
-            Assert.assertNull(taskParamsMap.get("key"));
+            Assertions.assertNull(taskParamsMap.get("key"));
         } else {
-            Assert.fail("Deserialize the task definition failed");
+            Assertions.fail("Deserialize the task definition failed");
         }
 
         String newDefinitionJson = JSONUtils.toJsonString(definition);
-        Assert.assertNotNull("Serialize the task definition success", newDefinitionJson);
+        Assertions.assertNotNull("Serialize the task definition success", newDefinitionJson);
     }
 
     @Test
@@ -181,6 +160,6 @@ public class TaskDefinitionMapperTest extends BaseDaoTest {
                 "{\"failRetryTimes\":\"0\",\"timeoutNotifyStrategy\":\"\",\"code\":\"5195043558720\",\"flag\":\"YES\",\"environmentCode\":\"-1\",\"taskDefinitionIndex\":2,\"taskPriority\":\"MEDIUM\",\"taskParams\":\"{\\\"preStatements\\\":null,\\\"postStatements\\\":null,\\\"type\\\":\\\"ADB_MYSQL\\\",\\\"database\\\":\\\"lijia\\\",\\\"sql\\\":\\\"create table nation_${random_serial_number} as select * from nation\\\",\\\"localParams\\\":null,\\\"Name\\\":\\\"create_table_as_select_nation\\\",\\\"FailRetryTimes\\\":0,\\\"dbClusterId\\\":\\\"amv-bp10o45925jpx959\\\",\\\"sendEmail\\\":false,\\\"displayRows\\\":10,\\\"limit\\\":10000,\\\"agentSource\\\":\\\"Workflow\\\",\\\"agentVersion\\\":\\\"Unkown\\\"}\",\"timeout\":\"0\",\"taskType\":\"ADB_MYSQL\",\"timeoutFlag\":\"CLOSE\",\"projectCode\":\"5191800302720\",\"name\":\"create_table_as_select_nation\",\"delayTime\":\"0\",\"workerGroup\":\"default\"}";
         TaskDefinition definition = JSONUtils.parseObject(definitionJson, TaskDefinition.class);
 
-        Assert.assertNull("Serialize the task definition success", definition.getTaskParamMap());
+        Assertions.assertNull(definition.getTaskParamMap(), "Serialize the task definition success");
     }
 }
